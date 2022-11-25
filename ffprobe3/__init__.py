@@ -1,1 +1,1 @@
-from .ffprobe import FFProbe
+from .ffprobe3 import FFProbe

@@ -9,7 +9,7 @@ import platform
 import re
 import subprocess
 
-from ffprobe.exceptions import FFProbeError
+from ffprobe3.exceptions import FFProbeError
 
 
 class FFProbe:
