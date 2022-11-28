@@ -146,9 +146,10 @@ Which versions of Python are supported?
 ---------------------------------------
 
 The **minimum supported Python version** is **Python3 >= 3.3**.
-Python 3.3 was released on 2012-09-29, more than 10 years ago now.
-The following convenient Python3 language and library features were
-added in Python 3.3:
+
+Python 3.3 was released on 2012-09-29 (more than 10 years ago now!).
+Setting Python 3.3 as the minimum allows us to use the following
+convenient Python3 language & library features:
 
 - the `__qualname__` attribute for the qualified name of classes
    ([PEP 3155](https://peps.python.org/pep-3155/))
@@ -171,6 +172,9 @@ added in Python 3.3:
   [`asyncio.subprocess`](https://docs.python.org/3/library/asyncio-subprocess.html)
 
 ---
+
+License
+-------
 
 (The MIT License)
 
