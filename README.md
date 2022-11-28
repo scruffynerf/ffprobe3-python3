@@ -33,6 +33,10 @@ ffprobe_output = ffprobe3.probe('http://some-streaming-url.com:8080/stream')
 # The "format" key in the parsed JSON becomes an `FFformat` instance:
 media_format = ffprobe_output.format
 
+# The total size of the media in Bytes (if provided by `ffprobe`):
+if media_format.size_B is not None:
+    print("media format size = %d Bytes" % int(media_format.size_B))
+
 # For convenience & continuity with the previous code, the list attributes
 # [`.attachment`, `.audio`, `.subtitle`, and `.video`] are also available
 # in this new code version:
@@ -54,21 +58,17 @@ audio_stream = ffprobe_output.audio[0]  # assuming at least 1 audio stream
 # Each of these derived classes only has attributes & methods relevant to
 # that kind of stream.
 
-# The total size of the media in Bytes (if provided by `ffprobe`):
-if media_format.size_B is not None:
-media_format_size_B = int(media_format.size_B)
-
 # Derived class `FFvideoStream` has a method `.get_frame_shape_as_ints()`,
 # which returns the frame (width, height) in pixels as a pair of ints;
 # or returns `None` upon any error:
 video_frame_shape = video_stream.get_frame_shape_as_ints()
 if video_frame_shape is not None:
-video_frame_shape = '%d,%d' % video_frame_shape
+    print("Video frame shape = (%d, %d)" % video_frame_shape)
 
 # Derived class `FFaudioStream` has an attribute `.sample_rate_Hz`
 # (which defaults to `None` if no value was provided by `ffprobe`):
 if audio_stream.sample_rate_Hz is not None:
-audio_stream_sample_rate_Hz = int(audio_stream.sample_rate_Hz)
+    print("Audio stream sample rate = %d Hz" % int(audio_stream.sample_rate_Hz))
 
 # Which keys are in the dictionary of parsed JSON for this `FFaudioStream`?
 print(audio_stream.keys())
