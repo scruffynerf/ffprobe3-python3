@@ -88,11 +88,8 @@ Significant changes in this fork include:
 Read the updated ``README.md`` file for a longer list of changes & reasons.
 """
 
-import functools
 import json
-import operator
 import os
-import re
 import subprocess
 
 from .exceptions import *
