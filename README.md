@@ -104,7 +104,7 @@ Significant changes in this fork include:
 - Re-wrote the subprocess code to use convenient new Python3 library features.
 - **No longer support Python 2 or Python3 < 3.3**.
 - **Changed the client-facing API of functions & classes**.
-- Added optional sanity-checking code (disabled using ``verify_`` switches).
+- Made file-check optional (disable using ``verify_local_mediafile=False``).
 - Added several derived exception classes for more-informative error reporting.
 - Support media streams (as the ``ffprobe`` command-line program already does).
 - Handle "Chapters" in media.

@@ -58,7 +58,8 @@ class FFprobeOverrideFileError(FFprobeError):
 
 
 class FFprobeExecutableError(FFprobeError):
-    """This ffprobe command executable was not found by ``subprocess.check_call``.
+    """This ffprobe command executable was not found by ``subprocess.Popen``,
+    ``subprocess.call``, or ``subprocess.check_call``.
 
     Args:
         cmd (str): the ffprobe command executable filename that was not found
@@ -86,11 +87,11 @@ class FFprobeMediaFileError(FFprobeError):
 
 
 class FFprobePopenError(FFprobeError):
-    """This exception was raised by function ``subprocess.Popen``.
+    """This wraps an exception that was raised by function ``subprocess.Popen``.
 
     Args:
-        exc (caught exception): the exception instance that was caught
-        caught_type_name (str): the type-name of the exception that was caught
+        exc (caught exception): the exception instance that was raised
+        caught_type_name (str): the type-name of the exception that was raised
     """
     def __init__(self, exc, caught_type_name):
         self.exc = exc
@@ -102,11 +103,11 @@ class FFprobePopenError(FFprobeError):
 
 
 class FFprobeJsonParseError(FFprobeError):
-    """This exception was raised by function ``json.loads``.
+    """This wraps an exception that was raised by function ``json.loads``.
 
     Args:
-        exc (caught exception): the exception instance that was caught
-        caught_type_name (str): the type-name of the exception that was caught
+        exc (caught exception): the exception instance that was raised
+        caught_type_name (str): the type-name of the exception that was raised
     """
     def __init__(self, exc, caught_type_name):
         self.exc = exc

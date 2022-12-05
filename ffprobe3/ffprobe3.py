@@ -80,7 +80,7 @@ Significant changes in this fork include:
 - Re-wrote the subprocess code to use convenient new Python3 library features.
 - **No longer support Python 2 or Python3 < 3.3**.
 - **Changed the client-facing API of functions & classes**.
-- Added optional sanity-checking code (disabled using ``verify_`` switches).
+- Made file-check optional (disable using ``verify_local_mediafile=False``).
 - Added several derived exception classes for more-informative error reporting.
 - Support remote media streams (as the ``ffprobe`` program already does).
 - Handle "Chapters" in media.
@@ -91,6 +91,7 @@ Read the updated ``README.md`` file for a longer list of changes & reasons.
 
 import json
 import os
+import re
 import subprocess
 
 from .exceptions import *
@@ -112,12 +113,16 @@ _SPLIT_COMMAND_LINE = [
         '-show_streams',
 ]
 
+# Match anything that looks like a URI Scheme to specify a remote media stream:
+#  https://en.wikipedia.org/wiki/Uniform_Resource_Identifier#Syntax
+#  https://en.wikipedia.org/wiki/List_of_URI_schemes
+_URI_SCHEME = re.compile("^[a-z][a-z0-9-]*://")
+
 
 def probe(path_to_media, *,
         communicate_timeout=10.0,  # a timeout in seconds
         ffprobe_cmd_override=None,
-        verify_ffprobe_found=True,
-        verify_mediafile_found=True):
+        verify_local_mediafile=True):
     """
     Wrap the ``ffprobe`` command; parse the ffprobe JSON output into dicts.
 
@@ -134,10 +139,8 @@ def probe(path_to_media, *,
             a timeout in seconds for ``subprocess.Popen.communicate``
         ffprobe_cmd_override (str, optional):
             a command to invoke instead of the default ``"ffprobe"``
-        verify_ffprobe_found (bool, optional):
-            verify ffprobe command can be found in ``$PATH`` (sanity check)
-        verify_mediafile_found (bool, optional):
-            verify `path_to_media` exists as a local file (sanity check)
+        verify_local_mediafile (bool, optional):
+            verify `path_to_media` exists, if it's a local file (sanity check)
 
     Returns:
         a new instance of class :class:`FFprobe`
@@ -184,41 +187,43 @@ def probe(path_to_media, *,
                     'Supplied timeout is non-None and non-positive',
                     communicate_timeout)
 
-    # Verify that the `ffprobe` command can be found in the $PATH.
-    # We perform this by default as a helpful safety/sanity check.
-    if verify_ffprobe_found:
-        try:
-            # From the docs for `subprocess.check_call`:
-            #  https://docs.python.org/3/library/subprocess.html#subprocess.check_call
-            #   '''
-            #   Wait for command to complete. If the return code was zero
-            #   then return, otherwise raise `CalledProcessError`.
-            #   The `CalledProcessError` object will have the return code
-            #   in the `returncode` attribute. If `check_call()` was unable
-            #   to start the process it will propagate the exception that
-            #   was raised.
-            #   '''
-            #
-            # Docs for exception `subprocess.CalledProcessError`:
-            #  https://docs.python.org/3/library/subprocess.html#subprocess.CalledProcessError
-            subprocess.check_call(
-                    [ffprobe_cmd, '-h'],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL)
-        except FileNotFoundError as e:
-            raise FFprobeExecutableError(ffprobe_cmd) from e
-        except subprocess.CalledProcessError as e:
-            raise FFprobeSubprocessError(split_cmdline, e.returncode) from e
-
-    # Verify that the specified media exists as a local file.
-    # We perform this by default as a helpful safety/sanity check.
+    # Verify that the specified media exists (if it's a local file).
+    # We perform this by default as a helpful (but optional!) sanity check.
     #
-    # But it's an optional check, to allow `ffprobe` to access files
-    # over HTTP or FTP -- as requested in this issue, for example:
+    # [Of course, we WILL ultimately find out whether a local media file exists
+    # -- when we attempt to probe it with `ffprobe`.  But at that stage, there
+    # are any number of other media file faults that might occur, requiring us
+    # to decipher whatever error message `ffprobe` prints to stderr:
+    # - Specified file is not actually a media file.
+    # - Specified media file is corrupted part-way through.
+    # - Communication timeout for remote media stream.
+    # - etc.
+    #
+    # So at the cost of an extra filesystem access, this sanity check verifies
+    # this one particular requirement in advance, with a specific error message
+    # in case of failure.]
+    #
+    # And of course, we don't perform this check when accessing remote media
+    # (e.g., over HTTP)...  The previous version of `ffprobe-python` did that,
+    # and it was reported as an issue (which is still Open):
     #  https://github.com/gbstack/ffprobe-python/issues/4
-    if verify_mediafile_found:
-        if not os.path.isfile(path_to_media):
-            raise FFprobeMediaFileError(path_to_media)
+    if verify_local_mediafile:
+        # How do we detect when the media file is remote rather than local?
+        # If you run `ffprobe -protocols`, it prints the file protocols that
+        # it supports.  On my system, that list (joined at newlines) is:
+        #
+        #       Input: async bluray cache concat crypto data file ftp gopher
+        #       hls http httpproxy https mmsh mmst pipe rtp sctp srtp subfile
+        #       tcp tls udp udplite unix rtmp rtmpe rtmps rtmpt rtmpte sftp
+        #
+        # But rather than hard-coding a list of protocols, let's just match
+        # anything that *looks* like a URI Scheme:
+        #  https://en.wikipedia.org/wiki/Uniform_Resource_Identifier#Syntax
+        #  https://en.wikipedia.org/wiki/List_of_URI_schemes
+        if _URI_SCHEME.match(path_to_media) is None:
+            # It doesn't look like the URI of a remote media file.
+            if not os.path.isfile(path_to_media):
+                raise FFprobeMediaFileError(path_to_media)
 
     # NOTE #1: Python3 docs say that its `Popen` does not call a system shell:
     #  https://docs.python.org/3/library/subprocess.html#security-considerations
@@ -247,6 +252,13 @@ def probe(path_to_media, *,
                 universal_newlines=True)
     # We catch the following plausible exceptions specifically,
     # in case we decide that we want to process any of them specially.
+    except FileNotFoundError as e:
+        # This exception is raised if the specified executable cannot be found.
+        # Class `FileNotFoundError` is a subclass of `OSError`, so this failure
+        # would be handled by the exception handler for `OSError` that follows;
+        # but recognizing `FileNotFoundError` first, enables us to provide a
+        # more-specific exception type with a more-descriptive error message.
+        raise FFprobeExecutableError(ffprobe_cmd) from e
     except OSError as e:
         # https://docs.python.org/3/library/subprocess.html#exceptions
         #   '''
