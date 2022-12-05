@@ -1,6 +1,11 @@
 """
 A Python3 wrapper-library around the ``ffprobe`` command-line program.
 
+(**Note:** This wrapper-library depends on the ``ffprobe`` command-line program
+to extract metadata from media files or streams.  The ``ffprobe`` program must
+be installed, with an ``ffprobe`` executable that can be found by searching the
+``$PATH`` environment variable.)
+
 Example usage::
 
     #!/usr/bin/env python3
@@ -21,6 +26,10 @@ Example usage::
     # The "format" key in the parsed JSON becomes an `FFformat` instance:
     media_format = ffprobe_output.format
 
+    # The size of the media in Bytes (if provided by `ffprobe`):
+    if media_format.size_B is not None:
+        print("media size = %d Bytes" % int(media_format.size_B))
+
     # For convenience & continuity with the previous code, the list attributes
     # [`.attachment`, `.audio`, `.subtitle`, and `.video`] are also available
     # in this new code version:
@@ -39,32 +48,23 @@ Example usage::
     # - `FFsubtitleStream`
     # - `FFvideoStream`
     #
-    # Each of these derived classes only has attributes & methods relevant to
+    # Each of these derived classes has only attributes & methods relevant to
     # that kind of stream.
-
-    # The total size of the media in Bytes (if provided by `ffprobe`):
-    if media_format.size_B is not None:
-        media_format_size_B = int(media_format.size_B)
 
     # Derived class `FFvideoStream` has a method `.get_frame_shape_as_ints()`,
     # which returns the frame (width, height) in pixels as a pair of ints;
     # or returns `None` upon any error:
     video_frame_shape = video_stream.get_frame_shape_as_ints()
     if video_frame_shape is not None:
-        video_frame_shape = '%d,%d' % video_frame_shape
+        print("Video frame shape = (%d, %d)" % video_frame_shape)
 
     # Derived class `FFaudioStream` has an attribute `.sample_rate_Hz`
     # (which defaults to `None` if no value was provided by `ffprobe`):
     if audio_stream.sample_rate_Hz is not None:
-        audio_stream_sample_rate_Hz = int(audio_stream.sample_rate_Hz)
+        print("Audio sample rate = %d Hz" % int(audio_stream.sample_rate_Hz))
 
     # Which keys are in the dictionary of parsed JSON for this `FFaudioStream`?
     print(audio_stream.keys())
-
-(**Note:** This wrapper-library depends on the ``ffprobe`` command-line program
-to extract metadata from media files or streams.  The ``ffprobe`` program must
-be installed, with an ``ffprobe`` executable that can be found by searching the
-``$PATH`` environment variable.)
 
 This package is a fork (actually now a complete rewrite) of package
 ``ffprobe-python`` which is/was maintained by Mark Ma:
@@ -79,11 +79,12 @@ Significant changes in this fork include:
 - Re-wrote all client-facing parsed-ffprobe-output classes to wrap parsed JSON.
 - Re-wrote the subprocess code to use convenient new Python3 library features.
 - **No longer support Python 2 or Python3 < 3.3**.
-- **Changed the client-facing API of functions & class-names**.
+- **Changed the client-facing API of functions & classes**.
 - Added optional sanity-checking code (disabled using ``verify_`` switches).
 - Added several derived exception classes for more-informative error reporting.
 - Support remote media streams (as the ``ffprobe`` program already does).
 - Handle "Chapters" in media.
+- Documented the API (Sphinx/reST docstrings for modules, classes, methods).
 
 Read the updated ``README.md`` file for a longer list of changes & reasons.
 """
@@ -348,8 +349,8 @@ class ParsedJson:
 
     This class also provides some convenient accessor methods:
 
-    - Pythonic ``dict``-like (eg, ``.get(key, default=None)`` & ``.keys()``)
-    - type-converting (eg, ``.get_as_int(key, default=None)``).
+    - Pythonic ``dict``-like (e.g., ``.get(key, default=None)`` & ``.keys()``)
+    - type-converting (e.g., ``.get_as_int(key, default=None)``).
 
     In general, client code should not need to construct this class manually.
     Derived classes of this class are constructed by function :func:`probe`.
@@ -444,8 +445,8 @@ class ParsedJson:
                 if abs(num) < divisor:
                     if unit and not use_base_10:
                         # We're not using base 10; it must be base 2 instead.
-                        # And there is a non-empty unit (eg, 'k', 'M', etc.).
-                        # So, postfix the unit by 'i' (eg, 'ki', 'Mi', etc.).
+                        # And there is a non-empty unit (e.g., 'k', 'M', etc.).
+                        # So, postfix the unit by 'i' (e.g., 'ki', 'Mi', etc.).
                         return "%3.1f %si%s" % (num, unit, suffix)
                     return "%3.1f %s%s" % (num, unit, suffix)
                 num /= divisor

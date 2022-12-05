@@ -33,9 +33,9 @@ ffprobe_output = ffprobe3.probe('http://some-streaming-url.com:8080/stream')
 # The "format" key in the parsed JSON becomes an `FFformat` instance:
 media_format = ffprobe_output.format
 
-# The total size of the media in Bytes (if provided by `ffprobe`):
+# The size of the media in Bytes (if provided by `ffprobe`):
 if media_format.size_B is not None:
-    print("media format size = %d Bytes" % int(media_format.size_B))
+    print("media size = %d Bytes" % int(media_format.size_B))
 
 # For convenience & continuity with the previous code, the list attributes
 # [`.attachment`, `.audio`, `.subtitle`, and `.video`] are also available
@@ -55,7 +55,7 @@ audio_stream = ffprobe_output.audio[0]  # assuming at least 1 audio stream
 # - `FFsubtitleStream`
 # - `FFvideoStream`
 #
-# Each of these derived classes only has attributes & methods relevant to
+# Each of these derived classes has only attributes & methods relevant to
 # that kind of stream.
 
 # Derived class `FFvideoStream` has a method `.get_frame_shape_as_ints()`,
@@ -68,7 +68,7 @@ if video_frame_shape is not None:
 # Derived class `FFaudioStream` has an attribute `.sample_rate_Hz`
 # (which defaults to `None` if no value was provided by `ffprobe`):
 if audio_stream.sample_rate_Hz is not None:
-    print("Audio stream sample rate = %d Hz" % int(audio_stream.sample_rate_Hz))
+    print("Audio sample rate = %d Hz" % int(audio_stream.sample_rate_Hz))
 
 # Which keys are in the dictionary of parsed JSON for this `FFaudioStream`?
 print(audio_stream.keys())
@@ -79,9 +79,9 @@ print(audio_stream.keys())
 Why does this fork exist?
 -------------------------
 
-The most recent PyPI release of Mark Ma's `ffprobe-python` is 2019-11-05
-(more than 3 years ago).  Even the most recent Github commit is 2021-05-13.
-If it's not dead, it's resting.  (Pining for the fjords?)
+The most recent PyPI release of Mark Ma's `ffprobe-python` is dated 2019-11-05
+(more than 3 years ago).  Even the most recent Github commit is dated
+2021-05-13.  If it's not dead, it's resting.  (Pining for the fjords?)
 
 This fork fixes the following bugs / implements the following feature requests
 that are "Open" issues on the `ffprobe-python` repo:
@@ -102,16 +102,17 @@ Significant changes in this fork include:
 - Re-wrote the ``ffprobe`` call to request & parse the ``json`` print-format.
 - Re-wrote all client-facing parsed-ffprobe-output classes to wrap parsed JSON.
 - Re-wrote the subprocess code to use convenient new Python3 library features.
-- No longer support Python 2 or Python3 < 3.3.
-- Changed the client-facing API of functions & class-names.
+- **No longer support Python 2 or Python3 < 3.3**.
+- **Changed the client-facing API of functions & classes**.
 - Added optional sanity-checking code (disabled using ``verify_`` switches).
 - Added several derived exception classes for more-informative error reporting.
 - Support media streams (as the ``ffprobe`` command-line program already does).
 - Handle "Chapters" in media.
+- Documented the API (Sphinx/reST docstrings for modules, classes, methods).
 
 **I renamed this forked repo to ``ffprobe3-python3``**, because:
 
-- The client-facing API of functions & class-names has changed; and
+- The client-facing API of functions & classes has changed; and
 - The supported Python version has changed from Python2 to **Python3 >= 3.3**.
 
 ---
@@ -138,7 +139,7 @@ original `ffprobe` module to Python3 (without fixing any other issues):
 - [https://pypi.org/project/ffprobe3/](https://pypi.org/project/ffprobe3/)
 - [https://github.com/DheerendraRathor/ffprobe3](https://github.com/DheerendraRathor/ffprobe3)
 
-This forked repo is **not** related to **that** `ffprobe3` package at all.
+**This** forked repo is not related to that `ffprobe3` package at all.
 
 ---
 
