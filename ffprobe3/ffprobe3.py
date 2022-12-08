@@ -80,10 +80,11 @@ Significant changes in this fork include:
 - Re-wrote the subprocess code to use convenient new Python3 library features.
 - **No longer support Python 2 or Python3 < 3.3**.
 - **Changed the client-facing API of functions & classes**.
-- Made file-check optional (disable using ``verify_local_mediafile=False``).
-- Added several derived exception classes for more-informative error reporting.
-- Support remote media streams (as the ``ffprobe`` program already does).
+- Support/allow remote media streams (as ``ffprobe`` program already does).
+- Local-file-exists checks are optional (use ``verify_local_mediafile=False``).
 - Handle "Chapters" in media.
+- All parsed-ffprobe-output JSON-wrapper classes have introspection methods.
+- Added several derived exception classes for more-informative error reporting.
 - Documented the API (Sphinx/reST docstrings for modules, classes, methods).
 
 Read the updated ``README.md`` file for a longer list of changes & reasons.
@@ -94,6 +95,7 @@ import os
 import re
 import subprocess
 
+from collections.abc import Mapping
 from .exceptions import *
 
 
@@ -124,7 +126,8 @@ def probe(path_to_media, *,
         ffprobe_cmd_override=None,
         verify_local_mediafile=True):
     """
-    Wrap the ``ffprobe`` command; parse the ffprobe JSON output into dicts.
+    Wrap the ``ffprobe`` command, requesting the ``json`` print-format.
+    Parse the JSON output into a hierarchy of :class:`ParsedJson` classes.
 
     **Note:** This function is the entry point to this module;
     it's the first function you want to call.  This function will return
@@ -346,47 +349,183 @@ def probe(path_to_media, *,
     return FFprobe(split_cmdline=split_cmdline, parsed_json=parsed_json)
 
 
-class ParsedJson:
+class ParsedJson(Mapping):
     """
-    Class `ParsedJson` contains a dictionary of confirmed-valid parsed JSON.
+    Class `ParsedJson` contains a dictionary of parsed JSON.
 
     This class is a lightweight wrapper around the dictionaries of parsed JSON.
-    The multiple classes that derive from this class will provide some extra
-    data attributes for convenience; but ultimately the parsed JSON can always
-    be inspected directly using dictionary lookups in the ``.parsed_json``
-    attribute.
+    We use this `Mapping`-interface container class as an alternative to either:
 
-    We use this container class as an alternative to mixing arbitrary JSON keys
-    (produced by an external program) into a top-level class ``__dict__``.
+    - inheriting from built-in class ``dict``; or
+    - mixing arbitrary JSON keys (produced by an external program)
+      into a per-instance ``__dict__``.
 
-    This class also provides some convenient accessor methods:
+    Instead, an instance of this class will reference (and share) the original
+    ``dict`` instance of parsed JSON that was supplied to its constructor.
+    It will **not copy** the argument ``dict`` items into a new ``dict`` owned
+    exclusively by this instance.  As a result, for a given ``ffprobe`` output,
+    all instances of derived classes of `ParsedJson` will **share the same
+    original tree** of ``dict`` instances that was returned by ``json.loads``;
+    they will each reference a different subtree of the shared tree.
 
-    - Pythonic ``dict``-like (e.g., ``.get(key, default=None)`` & ``.keys()``)
-    - type-converting (e.g., ``.get_as_int(key, default=None)``).
+    This class provides some convenient accessor methods for parsed JSON keys:
+
+    - Python `abstract Mapping <https://docs.python.org/3/library/collections.abc.html#collections-abstract-base-classes>`_
+      interface (for Pythonic ``dict``-lookup):
+      :func:`__contains__`, :func:`__getitem__`, :func:`__iter__`, :func:`__len__`,
+      :func:`get`, :func:`keys`
+    - lookup with type-conversion: :func:`get_as_float`, :func:`get_as_int`, etc.
+
+    For convenient introspection of class `ParsedJson` (or any derived class),
+    a list of accessor methods for that class is returned by
+    :func:`get_getter_names`.  Example usage::
+
+        >>> import ffprobe3
+        >>> p = ffprobe3.probe("movie.mp4")
+        >>> v = p.video[0]
+        >>> v
+        FFvideoStream(parsed_json={ ... valid JSON ... })
+        >>> v.get_getter_names()
+        ['get', 'get_as_float', 'get_as_int', 'get_datasize_as_human',
+        'get_duration_as_human', 'get_frame_shape_as_ints']
+
+    For convenience, each of the multiple classes that derive from this class
+    will define data attributes and/or additional accessor methods appropriate
+    to that type.  For convenient introspection, a list of data attributes is
+    returned by :func:`get_attr_names`.  Example usage::
+
+        >>> import ffprobe3
+        >>> p = ffprobe3.probe("movie.mp4")
+        >>> v = p.video[0]
+        >>> v
+        FFvideoStream(parsed_json={ ... valid JSON ... })
+        >>> v.get_attr_names()
+        ['avg_frame_rate', 'bit_rate_bps', 'bit_rate_kbps', 'codec_long_name',
+        'codec_name', 'codec_type', 'duration_secs', 'height', 'index',
+        'parsed_json', 'width']
 
     In general, client code should not need to construct this class manually.
     Derived classes of this class are constructed by function :func:`probe`.
     But client code *will* want to invoke the methods of returned instances
     of those derived classes.
     """
+
     def __init__(self, parsed_json):
-        # Verify that `parsed_json` allows value lookup by string keys
-        # (even if `parsed_json` is actually empty).
-        # We rely on this assumption later.
-        try:
-            "foo" in parsed_json
-            parsed_json.get("foo", None)
-        except (AttributeError, TypeError, ValueError) as e:
+        """Construct a wrapper that references the ``dict``-like `parsed_json`.
+
+        Note: An instance of this class will reference (and share) the original
+        ``dict`` instance of parsed JSON that was supplied to its constructor.
+        It will **not copy** the argument ``dict`` items into a new ``dict``
+        owned exclusively by this instance.
+        """
+        # Verify that the supplied `parsed_json` allows value lookup
+        # by string keys (even if `parsed_json` is actually empty).
+        # We rely on this duck-type assumption later.
+        if not isinstance(parsed_json, Mapping):
             raise FFprobeInvalidArgumentError('parsed_json',
                     'Supplied parsed JSON is not a dictionary',
-                    parsed_json) from e
+                    parsed_json)
 
         self.parsed_json = parsed_json
 
+    def __contains__(self, key):
+        """Return whether `key` in parsed JSON.
+
+        Returns:
+            ``bool``
+
+        This method is required to implement the Python
+        `abstract Mapping <https://docs.python.org/3/library/collections.abc.html#collections-abstract-base-classes>`_
+        interface.
+        """
+        return (key in self.parsed_json)
+
+    def __eq__(self, other):
+        """Compare the contained parsed JSON of `self` & `other` for equality.
+
+        Returns:
+            ``bool``
+
+        This is implemented as a dictionary-equality comparison.
+
+        This method is required to implement the Python
+        `abstract Mapping <https://docs.python.org/3/library/collections.abc.html#collections-abstract-base-classes>`_
+        interface.
+        """
+        return self.parsed_json == other.parsed_json
+
+    def __getitem__(self, key):
+        """Return the value for `key`, if `key` in parsed JSON; else raise `KeyError`.
+
+        This method is required to implement the Python
+        `abstract Mapping <https://docs.python.org/3/library/collections.abc.html#collections-abstract-base-classes>`_
+        interface.
+        """
+        return self.parsed_json[key]
+
+    def __iter__(self):
+        """Return an iterator over the keys in parsed JSON.
+
+        This method is required to implement the Python
+        `abstract Mapping <https://docs.python.org/3/library/collections.abc.html#collections-abstract-base-classes>`_
+        interface.
+        """
+        yield from self.parsed_json
+
+    def __len__(self):
+        """Return the count of keys in parsed JSON.
+
+        Returns:
+            ``int``
+
+        This method is required to implement the Python
+        `abstract Mapping <https://docs.python.org/3/library/collections.abc.html#collections-abstract-base-classes>`_
+        interface.
+        """
+        return len(self.parsed_json)
+
     def __repr__(self):
-        """Return a string that would yield an object with the same value."""
+        """Return a string that would yield an object with the same value.
+
+        Returns:
+            ``str``
+
+        Because this class is constructed from a ``dict`` of parsed JSON,
+        its ``repr`` is basically a ``repr`` of its ``dict`` of parsed JSON,
+        surrounded by parentheses, with its class-name in front.
+
+        Reconstructing a `ParsedJson` (or any derived class) instance from its
+        `repr` string should work perfectly, **except for** any preceding module
+        namespaces that are needed (depending on how the classes & functions in
+        this module were imported).
+
+        For example::
+
+            >>> import ffprobe3
+            >>> p = ffprobe3.probe("movie.mp4")
+            >>> v = p.video[0]
+            >>> v
+            FFvideoStream(parsed_json={ ... valid JSON ... })
+            >>> repr(v)
+            "FFvideoStream(parsed_json={ ... valid JSON ... })"
+            >>> eval(repr(v))
+            Traceback (most recent call last):
+              File "<stdin>", line 1, in <module>
+              File "<string>", line 1, in <module>
+            NameError: name 'FFvideoStream' is not defined
+            >>> ffprobe3.FFvideoStream
+            <class 'ffprobe3.ffprobe3.FFvideoStream'>
+            >>> eval("ffprobe3." + repr(v))
+            FFvideoStream(parsed_json={ ... valid JSON ... })
+            >>> eval("ffprobe3." + repr(v)) == v
+            True
+
+        [**Standard disclaimer:**  Using ``eval`` on untrusted strings
+        (from an external source) is dangerous and insecure.  Don't use
+        ``eval`` on untrusted strings!]
+        """
         return '%s(parsed_json=%s)' % \
-                (type(self).__qualname__, self.parsed_json)
+                (type(self).__qualname__, repr(self.parsed_json))
 
     def get(self, key, default=None):
         """Return the value for `key`, if `key` in parsed JSON; else `default`.
@@ -405,6 +544,9 @@ class ParsedJson:
         If conversion to ``float`` fails, default to `default`.
         If `default` is not supplied, default to `None`.
         This method will never raise an exception.
+
+        Returns:
+            ``float`` or `default`
         """
         try:
             return float(self.parsed_json[key])
@@ -419,6 +561,9 @@ class ParsedJson:
         If conversion to ``int`` fails, default to `default`.
         If `default` is not supplied, default to `None`.
         This method will never raise an exception.
+
+        Returns:
+            ``int`` or `default`
         """
         try:
             return int(self.parsed_json[key])
@@ -473,7 +618,7 @@ class ParsedJson:
         except Exception:
             return default
 
-    def get_duration_as_HH_MM_SS_ss(self, default=None):
+    def get_duration_as_human(self, default=None):
         """Return the duration as a string ``"HH:MM:SS.ss"``; else `default`.
 
         Returns:
@@ -498,8 +643,108 @@ class ParsedJson:
         except Exception:
             return default
 
+    def get_attr_names(self):
+        """Return the names of pre-defined attributes in this class.
+
+        This method is useful for introspection of the derived class API.
+        Similar methods: :func:`get_getter_names`, :func:`keys`
+
+        Example usage::
+
+            >>> import ffprobe3
+            >>> p = ffprobe3.probe("movie.mp4")
+            >>> v = p.video[0]
+            >>> v
+            FFvideoStream(parsed_json={ ... valid JSON ... })
+            >>> v.get_attr_names()
+            ['avg_frame_rate', 'bit_rate_bps', 'bit_rate_kbps',
+            'codec_long_name', 'codec_name', 'codec_type',
+            'duration_secs', 'height', 'index', 'parsed_json',
+            'width']
+            >>> v.bit_rate_bps
+            2149704
+            >>> v.bit_rate_kbps
+            2149.704
+            >>> v.duration_secs
+            7076.152417
+            >>> (v.width, v.height)
+            (1904, 1072)
+            >>> a = p.audio[0]
+            >>> a
+            FFaudioStream(parsed_json={ ... valid JSON ... })
+            >>> a.get_attr_names()
+            ['bit_rate_bps', 'bit_rate_kbps', 'channel_layout',
+            'codec_long_name', 'codec_name', 'codec_type',
+            'duration_secs', 'index', 'num_channels', 'parsed_json',
+            'sample_rate_Hz']
+        """
+        return [attr_name for attr_name in dir(self)
+                if not (attr_name.startswith("_") or
+                        attr_name.startswith("get") or
+                        attr_name.startswith("is_") or
+                        attr_name in ("keys", "items", "values"))]
+
+    def get_getter_names(self):
+        """Return the names of dict-lookup getter-methods in this class.
+
+        This method is useful for introspection of the derived class API.
+        Similar methods: :func:`get_attr_names`, :func:`keys`
+
+        Example usage::
+
+            >>> import ffprobe3
+            >>> p = ffprobe3.probe("movie.mp4")
+            >>> v = p.video[0]
+            >>> v
+            FFvideoStream(parsed_json={ ... valid JSON ... })
+            >>> v.keys()
+            dict_keys(['avg_frame_rate', 'level', 'nb_frames', 'disposition',
+            'display_aspect_ratio', 'sample_aspect_ratio', 'has_b_frames',
+            'duration_ts', 'coded_width', 'chroma_location', 'codec_type',
+            'codec_tag_string', 'refs', 'duration', 'bit_rate', 'tags',
+            'width', 'pix_fmt', 'start_time', 'codec_tag', 'profile',
+            'bits_per_raw_sample', 'height', 'time_base', 'index',
+            'codec_long_name', 'codec_name', 'start_pts', 'coded_height',
+            'is_avc', 'r_frame_rate', 'codec_time_base', 'nal_length_size'])
+            >>> v.get_getter_names()
+            ['get', 'get_as_float', 'get_as_int', 'get_datasize_as_human',
+            'get_duration_as_human', 'get_frame_shape_as_ints']
+            >>> v.get("duration")
+            '7076.152417'
+            >>> v.get_as_float("duration")
+            7076.152417
+            >>> v.get_duration_as_human()
+            '01:57:56.15'
+            >>> v.get_frame_shape_as_ints()
+            (1904, 1072)
+        """
+        return [attr_name for attr_name in dir(self)
+                if (attr_name.startswith("get") and
+                    attr_name not in ("get_attr_names", "get_getter_names"))]
+
     def keys(self):
-        """Return the keys in the top-level dictionary of parsed JSON."""
+        """Return the keys in the top-level dictionary of parsed JSON.
+
+        This method is useful for introspection of the parsed JSON.
+        Similar methods: :func:`get_attr_names`, :func:`get_getter_names`
+
+        Example usage::
+
+            >>> import ffprobe3
+            >>> p = ffprobe3.probe("movie.mp4")
+            >>> v = p.video[0]
+            >>> v
+            FFvideoStream(parsed_json={ ... valid JSON ... })
+            >>> v.keys()
+            dict_keys(['avg_frame_rate', 'level', 'nb_frames', 'disposition',
+            'display_aspect_ratio', 'sample_aspect_ratio', 'has_b_frames',
+            'duration_ts', 'coded_width', 'chroma_location', 'codec_type',
+            'codec_tag_string', 'refs', 'duration', 'bit_rate', 'tags',
+            'width', 'pix_fmt', 'start_time', 'codec_tag', 'profile',
+            'bits_per_raw_sample', 'height', 'time_base', 'index',
+            'codec_long_name', 'codec_name', 'start_pts', 'coded_height',
+            'is_avc', 'r_frame_rate', 'codec_time_base', 'nal_length_size'])
+        """
         return self.parsed_json.keys()
 
 
@@ -529,9 +774,9 @@ class FFprobe(ParsedJson):
     :ivar subtitle: (list of :class:`FFsubtitleStream`) only parsed subtitle streams
     :ivar video: (list of :class:`FFvideoStream`) only parsed video streams
 
-    In addition, the original ``dict`` of the parsed JSON output from ``ffprobe``
-    can always be accessed directly in the ``.parsed_json`` attribute of
-    base class :class:`ParsedJson`.
+    In addition, the original ``dict`` instance of the parsed JSON output
+    from ``ffprobe`` can always be accessed directly in the ``.parsed_json``
+    attribute of base class :class:`ParsedJson`.
 
     The following data attributes enable retrospective review of the command
     that was executed to produce this parsed probe output:
@@ -591,11 +836,11 @@ class FFprobe(ParsedJson):
 
         super().__init__(parsed_json)
         # Pick out some particular expected keys from the parsed JSON.
-        self.format = FFformat(self.parsed_json.get("format", {}))
+        self.format = FFformat(self.get("format", {}))
         self.streams = [_construct_ffstream_subclass(stream)
-                for stream in self.parsed_json.get("streams", [])]
+                for stream in self.get("streams", [])]
         self.chapters = [FFchapter(chapter)
-                for chapter in self.parsed_json.get("chapters", [])]
+                for chapter in self.get("chapters", [])]
 
         self.attachment =   [s for s in self.streams if s.is_attachment()]
         self.audio =        [s for s in self.streams if s.is_audio()]
@@ -613,7 +858,7 @@ class FFprobe(ParsedJson):
                 (type(self).__qualname__,
                         self.executed_cmd, self.media_file_path,
                         self.format.format_name,
-                        self.format.duration_HH_MM_SS_ss,
+                        self.format.get_duration_as_human(),
                         self.format.size_human,
                         self.format.bit_rate_kbps,
                         len(self.streams), len(self.chapters))
@@ -638,16 +883,16 @@ class FFformat(ParsedJson):
     :ivar format_name: short name of the format
     :ivar format_long_name: long name of the format
     :ivar duration_secs: media duration in seconds
-    :ivar duration_HH_MM_SS_ss: media duration in ``HH:MM:SS.ss`` format (e.g., ``"01:04:14.80"``)
+    :ivar duration_human: media duration in ``HH:MM:SS.ss`` format (e.g., ``"01:04:14.80"``)
     :ivar num_streams: number of streams in the media
     :ivar bit_rate_bps: media bit-rate in bits-per-second
     :ivar bit_rate_kbps: media bit-rate in kilobits-per-second
     :ivar size_B: media size in Bytes
     :ivar size_human: media size in "human-readable" base-10 prefix format (e.g., ``"567.8 MB"``)
 
-    In addition, the original ``dict`` of the parsed JSON output from ``ffprobe``
-    can always be accessed directly in the ``.parsed_json`` attribute of
-    base class :class:`ParsedJson`.
+    In addition, the original ``dict`` instance of the parsed JSON output
+    from ``ffprobe`` can always be accessed directly in the ``.parsed_json``
+    attribute of base class :class:`ParsedJson`.
 
     In general, client code should not need to construct this class manually.
     It is constructed by function :func:`probe`.  But client code *will* want
@@ -655,24 +900,24 @@ class FFformat(ParsedJson):
     """
     def __init__(self, parsed_json):
         super().__init__(parsed_json)
-        self.format_name =          self.parsed_json.get('format_name')
-        self.format_long_name =     self.parsed_json.get('format_long_name')
-        self.duration_secs =        self.parsed_json.get('duration')
-        self.duration_HH_MM_SS_ss = self.get_duration_as_HH_MM_SS_ss()
-        self.num_streams =          self.parsed_json.get('nb_streams')
-        self.bit_rate_bps =         self.parsed_json.get('bit_rate')
+        self.format_name =          self.get('format_name')
+        self.format_long_name =     self.get('format_long_name')
+        self.duration_secs =        self.get_as_float('duration')
+        self.duration_human =       self.get_duration_as_human()
+        self.num_streams =          self.get_as_int('nb_streams')
+        self.bit_rate_bps =         self.get_as_int('bit_rate')
         try:
-            self.bit_rate_kbps = int(self.bit_rate_bps) // 1000
+            self.bit_rate_kbps = float(self.bit_rate_bps) / 1000.0
         except (TypeError, ValueError):
             self.bit_rate_kbps = None
-        self.size_B =               self.parsed_json.get('size')
+        self.size_B =               self.get_as_int('size')
         self.size_human =           self.get_datasize_as_human('size', 'B')
 
     def __str__(self):
         """Return a string containing a human-readable summary of the object."""
         return '%s((%s): %s, %s, %s kb/s)' % \
                 (type(self).__qualname__, self.format_name,
-                        self.duration_HH_MM_SS_ss, self.size_human,
+                        self.duration_human, self.size_human,
                         self.bit_rate_kbps)
 
 
@@ -695,9 +940,9 @@ class FFchapter(ParsedJson):
     :ivar id: chapter identifier
     :ivar title: chapter title
 
-    In addition, the original ``dict`` of the parsed JSON output from ``ffprobe``
-    can always be accessed directly in the ``.parsed_json`` attribute of
-    base class :class:`ParsedJson`.
+    In addition, the original ``dict`` instance of the parsed JSON output
+    from ``ffprobe`` can always be accessed directly in the ``.parsed_json``
+    attribute of base class :class:`ParsedJson`.
 
     In general, client code should not need to construct this class manually.
     It is constructed by function :func:`probe`.  But client code *will* want
@@ -705,12 +950,12 @@ class FFchapter(ParsedJson):
     """
     def __init__(self, parsed_json):
         super().__init__(parsed_json)
-        self.id = self.parsed_json.get('id')
+        self.id = self.get('id')
         # This JSON might not have a "tags" key; or the value of the "tags" key
         # might not be a nested dictionary; or that nested dictionary might not
         # have a "title" key.
         try:
-            self.title = self.parsed_json['tags']['title']
+            self.title = self['tags']['title']
         except Exception:
             self.title = None
 
@@ -756,9 +1001,9 @@ class FFstream(ParsedJson):
     :ivar codec_long_name: long name of the specific codec used
     :ivar duration_secs: stream duration in seconds
 
-    In addition, the original ``dict`` of the parsed JSON output from ``ffprobe``
-    can always be accessed directly in the ``.parsed_json`` attribute of
-    base class :class:`ParsedJson`.
+    In addition, the original ``dict`` instance of the parsed JSON output
+    from ``ffprobe`` can always be accessed directly in the ``.parsed_json``
+    attribute of base class :class:`ParsedJson`.
 
     In general, client code should not need to construct this class manually.
     It is constructed by function :func:`probe`.  But client code *will* want
@@ -766,11 +1011,11 @@ class FFstream(ParsedJson):
     """
     def __init__(self, parsed_json):
         super().__init__(parsed_json)
-        self.index =            self.parsed_json.get('index')
-        self.codec_type =       self.parsed_json.get('codec_type')
-        self.codec_name =       self.parsed_json.get('codec_name')
-        self.codec_long_name =  self.parsed_json.get('codec_long_name')
-        self.duration_secs =    self.parsed_json.get('duration')
+        self.index =            self.get('index')
+        self.codec_type =       self.get('codec_type')
+        self.codec_name =       self.get('codec_name')
+        self.codec_long_name =  self.get('codec_long_name')
+        self.duration_secs =    self.get_as_float('duration')
 
     def __str__(self):
         """Return a string containing a human-readable summary of the object."""
@@ -855,12 +1100,12 @@ class FFaudioStream(FFstream):
             raise FFprobeStreamSubclassError(
                     type(self).__qualname__, self.codec_type, 'audio')
 
-        self.num_channels =    self.parsed_json.get('channels')
-        self.channel_layout =  self.parsed_json.get('channel_layout')
-        self.sample_rate_Hz =  self.parsed_json.get('sample_rate')
-        self.bit_rate_bps =    self.parsed_json.get('bit_rate')
+        self.num_channels =    self.get_as_int('channels')
+        self.channel_layout =  self.get('channel_layout')
+        self.sample_rate_Hz =  self.get_as_int('sample_rate')
+        self.bit_rate_bps =    self.get_as_int('bit_rate')
         try:
-            self.bit_rate_kbps = int(self.bit_rate_bps) // 1000
+            self.bit_rate_kbps = float(self.bit_rate_bps) / 1000.0
         except (TypeError, ValueError):
             self.bit_rate_kbps = None
 
@@ -914,8 +1159,8 @@ class FFvideoStream(FFstream):
     The following data attributes provide convenient access to frequently-used
     keys & values expected in the metadata for a video stream:
 
-    :ivar width_px: frame width in pixels
-    :ivar height_px: frame height in pixels
+    :ivar width: frame width in pixels
+    :ivar height: frame height in pixels
     :ivar avg_frame_rate: average frame rate
     :ivar bit_rate_bps: video bit-rate in bits-per-second
     :ivar bit_rate_kbps: video bit-rate in kilobits-per-second
@@ -933,12 +1178,12 @@ class FFvideoStream(FFstream):
             raise FFprobeStreamSubclassError(
                     type(self).__qualname__, self.codec_type, 'video')
 
-        self.width_px =        self.parsed_json.get('width')
-        self.height_px =       self.parsed_json.get('height')
-        self.avg_frame_rate =  self.parsed_json.get('avg_frame_rate')
-        self.bit_rate_bps =    self.parsed_json.get('bit_rate')
+        self.width =           self.get_as_int('width')
+        self.height =          self.get_as_int('height')
+        self.avg_frame_rate =  self.get('avg_frame_rate')
+        self.bit_rate_bps =    self.get_as_int('bit_rate')
         try:
-            self.bit_rate_kbps = int(self.bit_rate_bps) // 1000
+            self.bit_rate_kbps = float(self.bit_rate_bps) / 1000.0
         except (TypeError, ValueError):
             self.bit_rate_kbps = None
 
@@ -947,7 +1192,7 @@ class FFvideoStream(FFstream):
         return '%s(streams[%s]: %s(%s): %sx%s, %s fps, %s kb/s)' % \
                 (type(self).__qualname__, self.index,
                         self.codec_type, self.codec_name,
-                        self.width_px, self.height_px,
+                        self.width, self.height,
                         self.avg_frame_rate, self.bit_rate_kbps)
 
     def get_frame_shape_as_ints(self, default=None):
@@ -957,9 +1202,7 @@ class FFvideoStream(FFstream):
         will never raise a `KeyError`.
         """
         try:
-            width = int(self.width_px)
-            height = int(self.height_px)
-            return (width, height)
+            return (int(self.width), int(self.height))
         except Exception:
             return default
 

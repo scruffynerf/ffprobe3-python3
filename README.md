@@ -104,10 +104,11 @@ Significant changes in this fork include:
 - Re-wrote the subprocess code to use convenient new Python3 library features.
 - **No longer support Python 2 or Python3 < 3.3**.
 - **Changed the client-facing API of functions & classes**.
-- Made file-check optional (disable using ``verify_local_mediafile=False``).
-- Added several derived exception classes for more-informative error reporting.
-- Support media streams (as the ``ffprobe`` command-line program already does).
+- Support/allow remote media streams (as ``ffprobe`` program already does).
+- Local-file-exists checks are optional (use ``verify_local_mediafile=False``).
 - Handle "Chapters" in media.
+- All parsed-ffprobe-output JSON-wrapper classes have introspection methods.
+- Added several derived exception classes for more-informative error reporting.
 - Documented the API (Sphinx/reST docstrings for modules, classes, methods).
 
 **I renamed this forked repo to ``ffprobe3-python3``**, because:
@@ -152,10 +153,14 @@ Python 3.3 was released on 2012-09-29 (more than 10 years ago now!).
 Setting Python 3.3 as the minimum allows us to use the following
 convenient Python3 language & library features:
 
-- the `__qualname__` attribute for the qualified name of classes
+- `__qualname__` attribute for the qualified name of classes
    ([PEP 3155](https://peps.python.org/pep-3155/))
-- the `raise NewException() from None` syntax for suppressing exception context
-   ([PEP 409](https://peps.python.org/pep-0409/))
+- `yield from`
+  [syntax for generator delegation](https://docs.python.org/3/whatsnew/3.3.html#pep-380)
+  ([PEP 380](https://peps.python.org/pep-0380/))
+- `raise NewException() from None`
+  [syntax for suppressing exception context](https://docs.python.org/3/whatsnew/3.3.html#pep-409-suppressing-exception-context)
+  ([PEP 409](https://peps.python.org/pep-0409/))
 - exception base class [`subprocess.SubprocessError`](https://docs.python.org/3/library/subprocess.html#exceptions)
 - [`subprocess.DEVNULL`](https://docs.python.org/3/library/subprocess.html#subprocess.DEVNULL)
 - the `timeout` argument to functions
