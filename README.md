@@ -35,42 +35,59 @@ media_format = ffprobe_output.format
 
 # The size of the media in Bytes (if provided by `ffprobe`):
 if media_format.size_B is not None:
-    print("media size = %d Bytes" % int(media_format.size_B))
+    print("media size = %d Bytes" % media_format.size_B)
+# ... or in human-readable base-10 prefix format (e.g., "567.8 MB"):
+if media_format.size_human is not None:
+    print("media size = %s" % media_format.size_human)
 
-# For convenience & continuity with the previous code, the list attributes
-# [`.attachment`, `.audio`, `.subtitle`, and `.video`] are also available
-# in this new code version:
+# The duration of the media:
+if media_format.duration_secs is not None:
+    print("media duration = %f secs" % media_format.duration_secs)
+# ... or in human-readable "HH:MM:SS.ss" format (e.g., "01:04:14.80")
+if media_format.duration_human is not None:
+    print("media duration = %s (HH:MM:SS.ss)" % media_format.duration_human)
+
+# Access specific stream types directly by named attribute:
+# In this new code version, each attribute contains a list of instances
+# of only a *single specific derived class* of base class `FFstream`:
+# - `.attachment` -> `FFattachmentStream`
+# - `.audio` -> `FFaudioStream`
+# - `.subtitle` -> `FFsubtitleStream`
+# - `.video` -> `FFvideoStream`
 video_stream = ffprobe_output.video[0]  # assuming at least 1 video stream
 audio_stream = ffprobe_output.audio[0]  # assuming at least 1 audio stream
 
-# Previously, all 4 of these list attributes [`.attachment`, `.audio`,
-# `.subtitle`, `.video`] contained instances of a single type `FFStream`
-# (a class which had methods for all 4 kinds of stream, whether relevant
-# to the actual kind of stream or not).
-#
-# But now in this new code version, each list attribute contains instances
-# of only a *single specific derived class* of base class `FFstream`:
-# - `FFattachmentStream`
-# - `FFaudioStream`
-# - `FFsubtitleStream`
-# - `FFvideoStream`
-#
-# Each of these derived classes has only attributes & methods relevant to
-# that kind of stream.
+# Derived class `FFvideoStream` has attributes `width` & `height` for
+# the frame dimensions in pixels (or `None` if not found in the JSON):
+(video_width, video_height) = (video_stream.width, video_stream.height)
+if video_width is not None and video_height is not None:
+    print("Video frame shape = (%d, %d)" % (video_width, video_height))
 
-# Derived class `FFvideoStream` has a method `.get_frame_shape_as_ints()`,
-# which returns the frame (width, height) in pixels as a pair of ints;
-# or returns `None` upon any error:
-video_frame_shape = video_stream.get_frame_shape_as_ints()
+# Class `FFvideoStream` also has a method `.get_frame_shape()`,
+# which returns the frame (width, height) in pixels as a pair of ints
+# (or `None` if *either* is not found in the JSON):
+video_frame_shape = video_stream.get_frame_shape()
 if video_frame_shape is not None:
     print("Video frame shape = (%d, %d)" % video_frame_shape)
 
 # Derived class `FFaudioStream` has an attribute `.sample_rate_Hz`
 # (which defaults to `None` if no value was provided by `ffprobe`):
 if audio_stream.sample_rate_Hz is not None:
-    print("Audio sample rate = %d Hz" % int(audio_stream.sample_rate_Hz))
+    print("Audio sample rate = %d Hz" % audio_stream.sample_rate_Hz)
 
-# Which keys are in the dictionary of parsed JSON for this `FFaudioStream`?
+# Not sure which attributes & methods are available for each class?
+# Every class has 3 introspection methods:
+# - method `.get_attr_names()`
+# - method `.get_getter_names()`
+# - method `.keys()`
+
+# Which attributes does this class offer?  It returns a list of names:
+print(audio_stream.get_attr_names())
+
+# Which getter methods does this class offer?  It returns a list of names:
+print(audio_stream.get_getter_names())
+
+# Which keys are in the original dictionary of parsed JSON for this class?
 print(audio_stream.keys())
 ```
 
