@@ -2,20 +2,31 @@
 #
 # Test the `ffprobe3` function & class API for two known media files.
 # These tests are crude but comprehensive.
+#
+# Usage from this `tests` directory:
+#   python3 test_ffprobe3.py
+#
+# Usage from the root directory of the repo:
+#   python3 tests/test_ffprobe3.py
+#
+# If all the tests run, and nothing is printed on stderr, and the script ends
+# with "All tests passed." printed to stdout, then the tests have succeeded.
+# If any tests fail, the script will halt immediately, with the error printed
+# to stderr.
 
 import os
 import ffprobe3
 
 
 def test_SampleVideo_720x480_5mb(data_dir):
-    test_fname = os.path.join(data_dir, "SampleVideo_720x480_5mb.mp4")
-    p = ffprobe3.probe(test_fname)
+    test_filename = os.path.join(data_dir, "SampleVideo_720x480_5mb.mp4")
+    p = ffprobe3.probe(test_filename)
 
     # `FFprobe` instance:
     assert repr(p).startswith("FFprobe(split_cmdline=[")
     assert "], parsed_json={" in repr(p)
     assert repr(p).endswith("})")
-    assert str(p) == ('FFprobe(ffprobe "%s" => (mov,mp4,m4a,3gp,3g2,mj2): 00:00:31.00, 5.2 MB, 1353.182 kb/s, 2 streams, 0 chapters)' % test_fname)
+    assert str(p) == ('FFprobe(ffprobe "%s" => (mov,mp4,m4a,3gp,3g2,mj2): 00:00:31.00, 5.2 MB, 1353.182 kb/s, 2 streams, 0 chapters)' % test_filename)
 
     assert p.get_attr_names() == [
             'attachment',
@@ -23,7 +34,7 @@ def test_SampleVideo_720x480_5mb(data_dir):
             'chapters',
             'executed_cmd',
             'format',
-            'media_file_path',
+            'media_filename',
             'parsed_json',
             'split_cmdline',
             'streams',
@@ -35,8 +46,8 @@ def test_SampleVideo_720x480_5mb(data_dir):
 
     assert isinstance(p.split_cmdline, list)
     assert isinstance(p.executed_cmd, str)
-    assert isinstance(p.media_file_path, str)
-    assert p.media_file_path == test_fname
+    assert isinstance(p.media_filename, str)
+    assert p.media_filename == test_filename
 
     assert p.format is not None
     assert repr(p.format).startswith("FFformat(parsed_json={")
@@ -269,8 +280,74 @@ def test_SampleVideo_720x480_5mb(data_dir):
     assert not a.is_video()
 
 
+def test_errors(data_dir):
+    # Test handling of a non-existent local media file.
+    non_existent_media_filename = "this-media-file-does-not-exist"
+    try:
+        ffprobe3.probe(non_existent_media_filename)
+    except ffprobe3.FFprobeMediaFileError as e:
+        # This is the exception that was expected.
+        assert e.file_path == non_existent_media_filename
+
+    # Test handling of a non-zero exit status from `ffprobe` command
+    # (in this case, due to a non-existent local media file,
+    # which we have told `ffprobe3.probe` NOT to verify beforehand).
+    try:
+        ffprobe3.probe(non_existent_media_filename,
+                verify_local_mediafile=False)
+    except ffprobe3.FFprobeSubprocessError as e:
+        # This is the exception that was expected.
+        assert e.exit_status == 1
+        # `e.stderr` will look like:
+        #   this-media-file-does-not-exist: No such file or directory\n
+        # (with a trailing newline)
+        error_message = e.stderr.strip()
+        assert error_message == ('%s: No such file or directory' %
+                non_existent_media_filename)
+
+    # Test handling of a non-zero exit status from `ffprobe` command
+    # (in this case, due to a file which exists but is NOT a media file.
+    not_a_media_file = __file__
+    try:
+        ffprobe3.probe(not_a_media_file)
+    except ffprobe3.FFprobeSubprocessError as e:
+        # This is the exception that was expected.
+        assert e.exit_status == 1
+        # `e.stderr` will look like:
+        #   tests/test_ffprobe3.py: Invalid data found when processing input\n
+        # (with a trailing newline)
+        error_message = e.stderr.split(':', 1)[-1].strip()
+        assert error_message == 'Invalid data found when processing input'
+
+    # Test handling of a non-existent command specified by the caller.
+    test_filename = os.path.join(data_dir, "SampleVideo_720x480_5mb.mp4")
+    non_existent_command_name = "this-command-does-not-exist"
+    try:
+        ffprobe3.probe(test_filename,
+                ffprobe_cmd_override=non_existent_command_name)
+    except ffprobe3.FFprobeOverrideFileError as e:
+        # This is the exception that was expected.
+        assert e.file_path == non_existent_command_name
+
+    # Test handling of when no `ffprobe` command is found in `$PATH`.
+    # We will do this by temporarily replacing the normally-valid `"ffprobe"`
+    # command with `"this-command-does-not-exist"`.
+    from ffprobe3 import ffprobe3 as ffprobe3_actual
+    # Save the valid ffprobe command so we can restore it after the test.
+    valid_ffprobe_command = ffprobe3_actual._SPLIT_COMMAND_LINE[0]
+    ffprobe3_actual._SPLIT_COMMAND_LINE[0] = non_existent_command_name
+    try:
+        ffprobe3.probe(test_filename)
+    except ffprobe3.FFprobeExecutableError as e:
+        # This is the exception that was expected.
+        assert e.cmd == non_existent_command_name
+    # Now restore the valid ffprobe command for any subsequent tests.
+    ffprobe3_actual._SPLIT_COMMAND_LINE[0] = valid_ffprobe_command
+
+
 _TEST_FUNCS = [
         test_SampleVideo_720x480_5mb,
+        test_errors,
 ]
 
 

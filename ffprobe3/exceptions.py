@@ -46,6 +46,9 @@ class FFprobeInvalidArgumentError(FFprobeError):
 class FFprobeOverrideFileError(FFprobeError):
     """The caller-specified ffprobe command override file does not exist.
 
+    Note that if you specify an ffprobe command override, you must specify
+    the full path to the command.
+
     Args:
         file_path (str): the caller specified file-path that does not exist
     """
@@ -53,13 +56,16 @@ class FFprobeOverrideFileError(FFprobeError):
         self.file_path = file_path
 
     def __str__(self):
-        return "Command override file does not exist: %s" % \
+        return "Command override file-path does not exist: %s" % \
                 self.file_path
 
 
 class FFprobeExecutableError(FFprobeError):
     """This ffprobe command executable was not found by ``subprocess.Popen``,
     ``subprocess.call``, or ``subprocess.check_call``.
+
+    This means that this ffprobe command executable was not found in `$PATH`.
+    This might mean that the ffprobe command is not installed on your system.
 
     Args:
         cmd (str): the ffprobe command executable filename that was not found

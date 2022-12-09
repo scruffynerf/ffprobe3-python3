@@ -12,7 +12,7 @@ Example usage::
 
     import ffprobe3
 
-    # Function `ffprobe3.probe(path_to_media)` is the entry point to this module;
+    # Function `ffprobe3.probe(media_filename)` is the entry point to this module;
     # it's the first function you want to call.
 
     # Local media file:
@@ -138,7 +138,7 @@ _SPLIT_COMMAND_LINE = [
 _URI_SCHEME = re.compile("^[a-z][a-z0-9-]*://")
 
 
-def probe(path_to_media, *,
+def probe(media_filename, *,
         communicate_timeout=10.0,  # a timeout in seconds
         ffprobe_cmd_override=None,
         verify_local_mediafile=True):
@@ -153,14 +153,14 @@ def probe(path_to_media, *,
     :class:`ffprobe3.exceptions.FFprobeError` trying).
 
     Args:
-        path_to_media (str):
-            full-path to local media or URI of remote media to probe
+        media_filename (str):
+            filename of local media or URI of remote media to probe
         communicate_timeout (positive float, optional):
             a timeout in seconds for ``subprocess.Popen.communicate``
         ffprobe_cmd_override (str, optional):
-            a command to invoke instead of the default ``"ffprobe"``
+            full-path of a command to invoke instead of default ``"ffprobe"``
         verify_local_mediafile (bool, optional):
-            verify `path_to_media` exists, if it's a local file (sanity check)
+            verify `media_filename` exists, if it's a local file (sanity check)
 
     Returns:
         a new instance of class :class:`FFprobe`
@@ -240,10 +240,10 @@ def probe(path_to_media, *,
         # anything that *looks* like a URI Scheme:
         #  https://en.wikipedia.org/wiki/Uniform_Resource_Identifier#Syntax
         #  https://en.wikipedia.org/wiki/List_of_URI_schemes
-        if _URI_SCHEME.match(path_to_media) is None:
+        if _URI_SCHEME.match(media_filename) is None:
             # It doesn't look like the URI of a remote media file.
-            if not os.path.isfile(path_to_media):
-                raise FFprobeMediaFileError(path_to_media)
+            if not os.path.isfile(media_filename):
+                raise FFprobeMediaFileError(media_filename)
 
     # NOTE #1: Python3 docs say that its `Popen` does not call a system shell:
     #  https://docs.python.org/3/library/subprocess.html#security-considerations
@@ -262,7 +262,7 @@ def probe(path_to_media, *,
     #  https://docs.python.org/3/library/subprocess.html#converting-argument-sequence
     #
     # But I don't use Windows, so I can't test anything, sorry...
-    split_cmdline.append(path_to_media)
+    split_cmdline.append(media_filename)
 
     try:
         # https://docs.python.org/3/library/subprocess.html#subprocess.Popen
@@ -800,7 +800,7 @@ class FFprobe(ParsedJson):
 
     :ivar split_cmdline: split command-line that was executed
     :ivar executed_cmd: command executable filename that was executed
-    :ivar media_file_path: media-file path that was probed
+    :ivar media_filename: media filename that was probed
 
     In general, client code should not need to construct this class manually.
     It is constructed and returned by function :func:`probe`.  But client code
@@ -849,7 +849,7 @@ class FFprobe(ParsedJson):
 
         self.split_cmdline = split_cmdline
         self.executed_cmd = split_cmdline[0]
-        self.media_file_path = split_cmdline[-1]
+        self.media_filename = split_cmdline[-1]
 
         super().__init__(parsed_json)
         # Pick out some particular expected keys from the parsed JSON.
@@ -873,7 +873,7 @@ class FFprobe(ParsedJson):
         """Return a string containing a human-readable summary of the object."""
         return '%s(%s "%s" => (%s): %s, %s, %s kb/s, %d streams, %d chapters)' % \
                 (type(self).__qualname__,
-                        self.executed_cmd, self.media_file_path,
+                        self.executed_cmd, self.media_filename,
                         self.format.format_name,
                         self.format.duration_human,
                         self.format.size_human,

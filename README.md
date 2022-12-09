@@ -19,7 +19,7 @@ Example usage
 
 import ffprobe3
 
-# Function `ffprobe3.probe(path_to_media)` is the entry point to this module;
+# Function `ffprobe3.probe(media_filename)` is the entry point to this module;
 # it's the first function you want to call.
 
 # Local media file:
