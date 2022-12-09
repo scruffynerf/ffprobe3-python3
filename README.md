@@ -119,7 +119,7 @@ It looks like the `ffprobe-python` repo is no longer actively maintained?
 
 This new repo now fixes the following bugs & implements the following
 feature requests that are
-["Open" issues](https://github.com/gbstack/ffprobe-python/issues):
+["Open" issues](https://github.com/gbstack/ffprobe-python/issues)
 on the `ffprobe-python` repo.
 
 - **bug fix**
