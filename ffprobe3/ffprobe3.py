@@ -871,7 +871,7 @@ class FFprobe(ParsedJson):
 
     def __str__(self):
         """Return a string containing a human-readable summary of the object."""
-        return '%s(%s("%s") => (%s): %s, %s, %s kb/s, %d streams, %d chapters)' % \
+        return '%s(%s "%s" => (%s): %s, %s, %s kb/s, %d streams, %d chapters)' % \
                 (type(self).__qualname__,
                         self.executed_cmd, self.media_file_path,
                         self.format.format_name,
@@ -1117,10 +1117,11 @@ class FFaudioStream(FFstream):
             raise FFprobeStreamSubclassError(
                     type(self).__qualname__, self.codec_type, 'audio')
 
-        self.num_channels =    self.get_as_int('channels')
-        self.channel_layout =  self.get('channel_layout')
-        self.sample_rate_Hz =  self.get_as_int('sample_rate')
-        self.bit_rate_bps =    self.get_as_int('bit_rate')
+        self.num_channels =     self.get_as_int('channels')
+        self.num_frames =       self.get_as_int('nb_frames')
+        self.channel_layout =   self.get('channel_layout')
+        self.sample_rate_Hz =   self.get_as_int('sample_rate')
+        self.bit_rate_bps =     self.get_as_int('bit_rate')
         try:
             self.bit_rate_kbps = float(self.bit_rate_bps) / 1000.0
         except (TypeError, ValueError):
@@ -1195,10 +1196,11 @@ class FFvideoStream(FFstream):
             raise FFprobeStreamSubclassError(
                     type(self).__qualname__, self.codec_type, 'video')
 
-        self.width =           self.get_as_int('width')
-        self.height =          self.get_as_int('height')
-        self.avg_frame_rate =  self.get('avg_frame_rate')
-        self.bit_rate_bps =    self.get_as_int('bit_rate')
+        self.width =            self.get_as_int('width')
+        self.height =           self.get_as_int('height')
+        self.avg_frame_rate =   self.get('avg_frame_rate')
+        self.num_frames =       self.get_as_int('nb_frames')
+        self.bit_rate_bps =     self.get_as_int('bit_rate')
         try:
             self.bit_rate_kbps = float(self.bit_rate_bps) / 1000.0
         except (TypeError, ValueError):
