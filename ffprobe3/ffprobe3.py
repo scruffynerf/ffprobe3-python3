@@ -21,7 +21,7 @@ Example usage::
     # ... or, a remote video stream:
     ffprobe_output = ffprobe3.probe('http://some-streaming-url.com:8080/stream')
 
-    # Examine the metadata in `ffprobe_output`:
+    # Examine the metadata in `ffprobe_output` (of class `FFprobe`):
 
     # The "format" key in the parsed JSON becomes an `FFformat` instance:
     media_format = ffprobe_output.format
@@ -40,9 +40,10 @@ Example usage::
     if media_format.duration_human is not None:
         print("media duration = %s (HH:MM:SS.ss)" % media_format.duration_human)
 
-    # Access specific stream types directly by named attribute:
-    # In this new code version, each attribute contains a list of instances
-    # of only a *single specific derived class* of base class `FFstream`:
+    # Access specific stream types directly by named attribute of `FFprobe`:
+    # In this new code version, each stream attribute of class `FFprobe`
+    # contains a list of instances of *only* a single specific derived class
+    # of base class `FFstream`:
     # - `.attachment` -> `FFattachmentStream`
     # - `.audio` -> `FFaudioStream`
     # - `.subtitle` -> `FFsubtitleStream`
@@ -74,14 +75,17 @@ Example usage::
     # - method `.get_getter_names()`
     # - method `.keys()`
 
-    # Which attributes does this class offer?  It returns a list of names:
+    # Which attributes does this class offer?  Get a list of names:
     print(audio_stream.get_attr_names())
 
-    # Which getter methods does this class offer?  It returns a list of names:
+    # Which getter methods does this class offer?  Get a list of names:
     print(audio_stream.get_getter_names())
 
     # Which keys are in the original dictionary of parsed JSON for this class?
     print(audio_stream.keys())
+
+    # There is also a comprehensive coverage of the `ffprobe3` function & class API
+    # in the test module `tests/test_ffprobe3.py`.
 
 This package is a fork (actually now a complete rewrite) of package
 ``ffprobe-python`` which is/was maintained by Mark Ma:
