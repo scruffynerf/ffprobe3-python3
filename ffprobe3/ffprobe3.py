@@ -162,7 +162,7 @@ def probe(media_filename, *,
         communicate_timeout (positive float, optional):
             a timeout in seconds for ``subprocess.Popen.communicate``
         ffprobe_cmd_override (str, optional):
-            full-path of a command to invoke instead of default ``"ffprobe"``
+            file-path of a command to invoke instead of default ``"ffprobe"``
         verify_local_mediafile (bool, optional):
             verify `media_filename` exists, if it's a local file (sanity check)
 
@@ -175,11 +175,31 @@ def probe(media_filename, *,
         FFprobeInvalidArgumentError: invalid value to `communicate_timeout`
         FFprobeJsonParseError: JSON parser was unable to parse ffprobe output
         FFprobeMediaFileError: specified local media file does not exist
-        FFprobeOverrideFileError: `ffprobe_cmd_override` command not found
+        FFprobeOverrideFileError: `ffprobe_cmd_override` file not found
         FFprobePopenError: ``subprocess.Popen`` failed, raised an exception
         FFprobeSubprocessError: ffprobe command returned non-zero exit status
 
-    Example usage::
+    **Note:** If parameter `ffprobe_cmd_override` receives a non-``None``
+    argument, it must be a string that specifies the full file-path (either
+    absolute or relative to the current directory) to an executable to call,
+    to provide the functionality of the ``ffprobe`` command.
+
+    The intention of parameter `ffprobe_cmd_override` is to enable client code
+    to specify a particular executable to call, instead of searching ``$PATH``
+    for the default ``ffprobe`` command.  Reasons for this might include:
+
+    - Security: Specify a particular known/trusted executable to call,
+      rather than relying upon whatever happens to be found first in ``$PATH``.
+    - Control: Call a particular executable instead of what is installed in
+      the system ``$PATH``.
+
+    (This library defaults to searching for ``ffprobe`` in ``$PATH`` because:
+    (a) it's the easiest way to get started using this library (rather than
+    requiring a new library user to search for, and specify, the full file-path
+    to the ``ffprobe`` command on their own system); and (b) searching for an
+    executable in ``$PATH`` is what ``subprocess.Popen`` does *by default*.)
+
+    Example usage of this function::
 
         import ffprobe3
 
@@ -552,7 +572,7 @@ class ParsedJson(Mapping):
         """Return the value for `key`, if `key` in parsed JSON; else `default`.
 
         If `key` is not found in parsed JSON, default to `default`.
-        If `default` is not supplied, default to `None`.
+        If `default` is not supplied, default to ``None``.
         This method will never raise a `KeyError`.
         """
         return self.parsed_json.get(key, default)
@@ -563,7 +583,7 @@ class ParsedJson(Mapping):
 
         If `key` is not found in parsed JSON, default to `default`.
         If conversion to ``float`` fails, default to `default`.
-        If `default` is not supplied, default to `None`.
+        If `default` is not supplied, default to ``None``.
         This method will never raise an exception.
 
         Returns:
@@ -580,7 +600,7 @@ class ParsedJson(Mapping):
 
         If `key` is not found in parsed JSON, default to `default`.
         If conversion to ``int`` fails, default to `default`.
-        If `default` is not supplied, default to `None`.
+        If `default` is not supplied, default to ``None``.
         This method will never raise an exception.
 
         Returns:
@@ -607,7 +627,7 @@ class ParsedJson(Mapping):
 
         If `key` is not found in parsed JSON, default to `default`.
         If conversion of data-size to ``float`` fails, default to `default`.
-        If `default` is not supplied, default to `None`.
+        If `default` is not supplied, default to ``None``.
         This method will never raise an exception.
         """
         if use_base_10:
@@ -647,7 +667,7 @@ class ParsedJson(Mapping):
 
         If ``"duration"`` key is not found in parsed JSON, default to `default`.
         If conversion of duration to ``float`` fails, default to `default`.
-        If `default` is not supplied, default to `None`.
+        If `default` is not supplied, default to ``None``.
         This method will never raise an exception.
         """
         try:
@@ -802,9 +822,9 @@ class FFprobe(ParsedJson):
     The following data attributes enable retrospective review of the command
     that was executed to produce this parsed probe output:
 
-    :ivar split_cmdline: split command-line that was executed
-    :ivar executed_cmd: command executable filename that was executed
-    :ivar media_filename: media filename that was probed
+    :ivar split_cmdline: (list of ``str``) split command-line that was executed
+    :ivar executed_cmd: (``str``) command executable filename that was executed
+    :ivar media_filename: (``str``) media filename that was probed
 
     In general, client code should not need to construct this class manually.
     It is constructed and returned by function :func:`probe`.  But client code
@@ -901,15 +921,15 @@ class FFformat(ParsedJson):
     The following data attributes provide convenient access to frequently-used
     keys & values expected in the "format" metadata returned by ``ffprobe``:
 
-    :ivar format_name: short name of the format
-    :ivar format_long_name: long name of the format
-    :ivar duration_secs: media duration in seconds
-    :ivar duration_human: media duration in ``HH:MM:SS.ss`` format (e.g., ``"01:04:14.80"``)
-    :ivar num_streams: number of streams in the media
-    :ivar bit_rate_bps: media bit-rate in bits-per-second
-    :ivar bit_rate_kbps: media bit-rate in kilobits-per-second
-    :ivar size_B: media size in Bytes
-    :ivar size_human: media size in "human-readable" base-10 prefix format (e.g., ``"567.8 MB"``)
+    :ivar format_name: (``str`` or ``None``) short name of the format
+    :ivar format_long_name: (``str`` or ``None``) long name of the format
+    :ivar duration_secs: (``float`` or ``None``) media duration in seconds
+    :ivar duration_human: (``str`` or ``None``) media duration in "human-readable" ``HH:MM:SS.ss`` format (e.g., ``"01:04:14.80"``)
+    :ivar num_streams: (``int`` or ``None``) number of streams in the media
+    :ivar bit_rate_bps: (``int`` or ``None``) media bit-rate in bits-per-second
+    :ivar bit_rate_kbps: (``float`` or ``None``) media bit-rate in kilobits-per-second
+    :ivar size_B: (``int`` or ``None``) media size in Bytes
+    :ivar size_human: (``str`` or ``None``) media size in "human-readable" base-10 prefix format (e.g., ``"567.8 MB"``)
 
     In addition, the original ``dict`` instance of the parsed JSON output
     from ``ffprobe`` can always be accessed directly in the ``.parsed_json``
@@ -958,8 +978,8 @@ class FFchapter(ParsedJson):
     The following data attributes provide convenient access to frequently-used
     keys & values expected in the metadata for an individual chapter:
 
-    :ivar id: chapter identifier
-    :ivar title: chapter title
+    :ivar id: (``str`` or ``None``) chapter identifier
+    :ivar title: (``str`` or ``None``) chapter title
 
     In addition, the original ``dict`` instance of the parsed JSON output
     from ``ffprobe`` can always be accessed directly in the ``.parsed_json``
@@ -1016,11 +1036,11 @@ class FFstream(ParsedJson):
     The following data attributes provide convenient access to frequently-used
     keys & values expected in the metadata for an individual stream:
 
-    :ivar index: index in the list of streams
-    :ivar codec_type: type-name of the kind of stream
-    :ivar codec_name: short name of the specific codec used
-    :ivar codec_long_name: long name of the specific codec used
-    :ivar duration_secs: stream duration in seconds
+    :ivar index: (``int`` or ``str`` or ``None``) index in the list of streams
+    :ivar codec_type: (``str`` or ``None``) type-name of the kind of stream
+    :ivar codec_name: (``str`` or ``None``) short name of the specific codec used
+    :ivar codec_long_name: (``str`` or ``None``) long name of the specific codec used
+    :ivar duration_secs: (``float`` or ``None``) stream duration in seconds
 
     In addition, the original ``dict`` instance of the parsed JSON output
     from ``ffprobe`` can always be accessed directly in the ``.parsed_json``
@@ -1102,11 +1122,12 @@ class FFaudioStream(FFstream):
     The following data attributes provide convenient access to frequently-used
     keys & values expected in the metadata for an audio stream:
 
-    :ivar num_channels: number of audio channels
-    :ivar channel_layout: audio channel configuration (e.g., ``"stereo"``)
-    :ivar sample_rate_Hz: audio sample-rate in Hz
-    :ivar bit_rate_bps: audio bit-rate in bits-per-second
-    :ivar bit_rate_kbps: audio bit-rate in kilobits-per-second
+    :ivar num_channels: (``int`` or ``None``) number of audio channels
+    :ivar num_frames: (``int`` or ``None``) number of frames
+    :ivar channel_layout: (``str`` or ``None``) audio channel configuration (e.g., ``"stereo"``)
+    :ivar sample_rate_Hz: (``int`` or ``None``) audio sample-rate in Hz
+    :ivar bit_rate_bps: (``int`` or ``None``) audio bit-rate in bits-per-second
+    :ivar bit_rate_kbps: (``float`` or ``None``) audio bit-rate in kilobits-per-second
 
     **Note:** An instance of this class `FFaudioStream` may **only** be
     constructed for `parsed_json` with ``(codec_type == "audio")``.
@@ -1181,11 +1202,12 @@ class FFvideoStream(FFstream):
     The following data attributes provide convenient access to frequently-used
     keys & values expected in the metadata for a video stream:
 
-    :ivar width: frame width in pixels
-    :ivar height: frame height in pixels
-    :ivar avg_frame_rate: average frame rate
-    :ivar bit_rate_bps: video bit-rate in bits-per-second
-    :ivar bit_rate_kbps: video bit-rate in kilobits-per-second
+    :ivar width: (``int`` or ``None``) frame width in pixels
+    :ivar height: (``int`` or ``None``) frame height in pixels
+    :ivar avg_frame_rate: (``str`` or ``None``) average frame rate
+    :ivar num_frames: (``int`` or ``None``) number of frames
+    :ivar bit_rate_bps: (``int`` or ``None``) video bit-rate in bits-per-second
+    :ivar bit_rate_kbps: (``float`` or ``None``) video bit-rate in kilobits-per-second
 
     **Note:** An instance of this class `FFvideoStream` may **only** be
     constructed for `parsed_json` with ``(codec_type == "video")``.
@@ -1219,9 +1241,9 @@ class FFvideoStream(FFstream):
                         self.avg_frame_rate, self.bit_rate_kbps)
 
     def get_frame_shape(self, default=None):
-        """Return the frame (width, height) as a pair of ints; else `default`.
+        """Return the frame (width, height) as a pair ``(int, int)``; else `default`.
 
-        If `default` is not supplied, it defaults to `None`, so this method
+        If `default` is not supplied, it defaults to ``None``, so this method
         will never raise a `KeyError`.
         """
         try:

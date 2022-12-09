@@ -46,8 +46,9 @@ class FFprobeInvalidArgumentError(FFprobeError):
 class FFprobeOverrideFileError(FFprobeError):
     """The caller-specified ffprobe command override file does not exist.
 
-    Note that if you specify an ffprobe command override, you must specify
-    the full path to the command.
+    Note that if you specify an ffprobe command override file, you must
+    specify the full file-path to the command (either absolute or relative
+    to the current directory) to an executable file to call.
 
     Args:
         file_path (str): the caller specified file-path that does not exist
