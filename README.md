@@ -90,10 +90,11 @@ print(audio_stream.get_getter_names())
 
 # Which keys are in the original dictionary of parsed JSON for this class?
 print(audio_stream.keys())
-
-# There is also a comprehensive coverage of the `ffprobe3` function & class API
-# in the test module `tests/test_ffprobe3.py`.
 ```
+
+**To see a comprehensive usage** of (almost all) the attributes, methods, and
+exceptions in the `ffprobe3` class & function API, also look at test module
+[`tests/test_ffprobe3.py`](https://github.com/jboy/ffprobe3-python3/blob/master/tests/test_ffprobe3.py) (link to GitHub).
 
 ---
 
