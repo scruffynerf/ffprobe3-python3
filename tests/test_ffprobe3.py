@@ -15,6 +15,8 @@
 # to stderr.
 
 import os
+import re
+
 import ffprobe3
 
 
@@ -23,9 +25,7 @@ def test_SampleVideo_720x480_5mb(data_dir):
     p = ffprobe3.probe(test_filename)
 
     # `FFprobe` instance:
-    assert repr(p).startswith("FFprobe(split_cmdline=[")
-    assert "], parsed_json={" in repr(p)
-    assert repr(p).endswith("})")
+    assert re.match("^FFprobe[(]split_cmdline=[[].+[]], parsed_json=[{].+[}][)]$", repr(p))
     assert str(p) == ('FFprobe(ffprobe "%s" => (mov,mp4,m4a,3gp,3g2,mj2): 00:00:31.00, 5.2 MB, 1353.182 kb/s, 2 streams, 0 chapters)' % test_filename)
 
     assert p.get_attr_names() == [
@@ -42,7 +42,8 @@ def test_SampleVideo_720x480_5mb(data_dir):
             'video',
     ]
     for k in ['chapters', 'format', 'streams']:
-        assert k in p.keys()
+        assert k in p.keys()  # test `.keys()` method
+        assert k in p         # test `.__contains__()` method
 
     assert isinstance(p.split_cmdline, list)
     assert isinstance(p.executed_cmd, str)
@@ -87,7 +88,8 @@ def test_SampleVideo_720x480_5mb(data_dir):
             'start_time',
             'tags',
     ]:
-        assert k in f.keys()
+        assert k in f.keys()  # test `.keys()` method
+        assert k in f         # test `.__contains__()` method
 
     assert f.get("format_name") == 'mov,mp4,m4a,3gp,3g2,mj2'
     assert f.get_as_float("duration") == 30.998
@@ -165,7 +167,8 @@ def test_SampleVideo_720x480_5mb(data_dir):
             'time_base',
             'width',
     ]:
-        assert k in v.keys()
+        assert k in v.keys()  # test `.keys()` method
+        assert k in v         # test `.__contains__()` method
 
     assert v.get("codec_type") == 'video'
     assert v.get_as_float("duration") == 30.96
@@ -238,7 +241,8 @@ def test_SampleVideo_720x480_5mb(data_dir):
             'codec_tag',
             'bits_per_sample',
     ]:
-        assert k in a.keys()
+        assert k in a.keys()  # test `.keys()` method
+        assert k in a         # test `.__contains__()` method
 
     assert a.get("codec_type") == 'audio'
     assert a.get_as_float("duration") == 30.997333
