@@ -41,9 +41,15 @@ def test_SampleVideo_720x480_5mb(data_dir):
             'subtitle',
             'video',
     ]
+    # Test `.keys()` method & key-lookup `.__contains__()` method:
     for k in ['chapters', 'format', 'streams']:
-        assert k in p.keys()  # test `.keys()` method
-        assert k in p         # test `.__contains__()` method
+        assert k in p.keys()
+        assert k in p
+
+    # Test key-yielding `.__iter__()` method:
+    for k in p:
+        assert p.get(k) is not None
+    assert sorted(p) == sorted(p.keys())
 
     assert isinstance(p.split_cmdline, list)
     assert isinstance(p.executed_cmd, str)
@@ -75,6 +81,7 @@ def test_SampleVideo_720x480_5mb(data_dir):
     assert repr(f).startswith("FFformat(parsed_json={")
     assert str(f) == "FFformat((mov,mp4,m4a,3gp,3g2,mj2): 00:00:31.00, 5.2 MB, 1353.182 kb/s)"
 
+    # Test `.keys()` method & key-lookup `.__contains__()` method:
     for k in [
             'bit_rate',
             'duration',
@@ -88,8 +95,13 @@ def test_SampleVideo_720x480_5mb(data_dir):
             'start_time',
             'tags',
     ]:
-        assert k in f.keys()  # test `.keys()` method
-        assert k in f         # test `.__contains__()` method
+        assert k in f.keys()
+        assert k in f
+
+    # Test key-yielding `.__iter__()` method:
+    for k in f:
+        assert f.get(k) is not None
+    assert sorted(f) == sorted(f.keys())
 
     assert f.get("format_name") == 'mov,mp4,m4a,3gp,3g2,mj2'
     assert f.get_as_float("duration") == 30.998
@@ -132,6 +144,7 @@ def test_SampleVideo_720x480_5mb(data_dir):
     assert repr(v).startswith("FFvideoStream(parsed_json={")
     assert str(v) == "FFvideoStream(streams[0]: video(h264): 640x480, 25/1 fps, 966.247 kb/s)"
 
+    # Test `.keys()` method & key-lookup `.__contains__()` method:
     for k in [
             'avg_frame_rate',
             'bit_rate',
@@ -167,8 +180,13 @@ def test_SampleVideo_720x480_5mb(data_dir):
             'time_base',
             'width',
     ]:
-        assert k in v.keys()  # test `.keys()` method
-        assert k in v         # test `.__contains__()` method
+        assert k in v.keys()
+        assert k in v
+
+    # Test key-yielding `.__iter__()` method:
+    for k in v:
+        assert v.get(k) is not None
+    assert sorted(v) == sorted(v.keys())
 
     assert v.get("codec_type") == 'video'
     assert v.get_as_float("duration") == 30.96
@@ -214,6 +232,7 @@ def test_SampleVideo_720x480_5mb(data_dir):
     assert repr(a).startswith("FFaudioStream(parsed_json={")
     assert str(a) == "FFaudioStream(streams[1]: audio(aac): 6 channels (5.1), 48000 Hz, 383.29 kb/s)"
 
+    # Test `.keys()` method & key-lookup `.__contains__()` method:
     for k in [
             'nb_frames',
             'r_frame_rate',
@@ -241,8 +260,13 @@ def test_SampleVideo_720x480_5mb(data_dir):
             'codec_tag',
             'bits_per_sample',
     ]:
-        assert k in a.keys()  # test `.keys()` method
-        assert k in a         # test `.__contains__()` method
+        assert k in a.keys()
+        assert k in a
+
+    # Test key-yielding `.__iter__()` method:
+    for k in a:
+        assert a.get(k) is not None
+    assert sorted(a) == sorted(a.keys())
 
     assert a.get("codec_type") == 'audio'
     assert a.get_as_float("duration") == 30.997333
