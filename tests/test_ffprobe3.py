@@ -393,7 +393,7 @@ _TEST_FUNCS = [
 ]
 
 
-def main():
+def run_all_tests():
     for tf in _TEST_FUNCS:
         print("* %s" % tf.__name__)
         tf()
@@ -402,4 +402,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    run_all_tests()
