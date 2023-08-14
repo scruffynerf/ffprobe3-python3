@@ -9,6 +9,8 @@
 # Usage from the root directory of the repo:
 #   python3 tests/test_ffprobe3.py
 #
+# [This module contains the awful boilerplate to set up the import path.]
+#
 # If all the tests run, and nothing is printed on stderr, and the script ends
 # with "All tests passed." printed to stdout, then the tests have succeeded.
 # If any tests fail, the script will halt immediately, with the error printed
@@ -17,11 +19,23 @@
 import os
 import re
 
+_TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
+_DATA_DIR = os.path.join(_TESTS_DIR, "data")
+
+# Yay for Python relative imports.  A very popular topic on Stack Overflow!
+_PARENT_DIR = os.path.dirname(_TESTS_DIR)
+import sys
+# We assume that `sys.path[0]` is the current directory; don't change this.
+# But we want the parent directory to be checked immediately after.
+# If you insert a value at any index in an empty list (even a non-zero index),
+# the value is simply appended.  So inserting at index `1` will always be OK;
+# no need to check for empty lists or out-of-range indices.
+sys.path.insert(1, _PARENT_DIR)
 import ffprobe3
 
 
-def test_SampleVideo_720x480_5mb(data_dir):
-    test_filename = os.path.join(data_dir, "SampleVideo_720x480_5mb.mp4")
+def test_SampleVideo_720x480_5mb():
+    test_filename = os.path.join(_DATA_DIR, "SampleVideo_720x480_5mb.mp4")
     p = ffprobe3.probe(test_filename)
 
     # `FFprobe` instance:
@@ -308,7 +322,7 @@ def test_SampleVideo_720x480_5mb(data_dir):
     assert not a.is_video()
 
 
-def test_errors(data_dir):
+def test_errors():
     # Test handling of a non-existent local media file.
     non_existent_media_filename = "this-media-file-does-not-exist"
     try:
@@ -348,7 +362,7 @@ def test_errors(data_dir):
         assert error_message == 'Invalid data found when processing input'
 
     # Test handling of a non-existent command specified by the caller.
-    test_filename = os.path.join(data_dir, "SampleVideo_720x480_5mb.mp4")
+    test_filename = os.path.join(_DATA_DIR, "SampleVideo_720x480_5mb.mp4")
     non_existent_command_name = "this-command-does-not-exist"
     try:
         ffprobe3.probe(test_filename,
@@ -380,12 +394,9 @@ _TEST_FUNCS = [
 
 
 def main():
-    tests_dir = os.path.dirname(os.path.abspath(__file__))
-    data_dir = os.path.join(tests_dir, "data")
-
     for tf in _TEST_FUNCS:
         print("* %s" % tf.__name__)
-        tf(data_dir)
+        tf()
 
     print("All tests passed.")
 
