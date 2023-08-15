@@ -9,6 +9,39 @@ to extract metadata from media files or streams.  The `ffprobe` program must
 be installed, with an `ffprobe` executable that can be found by searching the
 `$PATH` environment variable.)
 
+This package began as a fork (and is now a complete rewrite) of package
+``ffprobe-python`` which was maintained by Mark Ma:
+
+- https://pypi.org/project/ffprobe-python/
+- https://github.com/gbstack/ffprobe-python
+
+Changes and improvements in this fork
+-------------------------------------
+
+Noteworthy improvements in this fork include:
+
+- Fixed a few Python3 compatibility bugs in the pre-fork code.
+- Re-wrote the `ffprobe` call to request & parse the `json` print-format.
+- Re-wrote all client-facing parsed-ffprobe-output classes to wrap parsed JSON.
+- Re-wrote the subprocess code to use convenient new Python3 library features.
+- Support/allow remote media streams (as `ffprobe` program already does).
+- Local-file-exists checks are optional (use `verify_local_mediafile=False`).
+- Handle "Chapters" in media.
+- More classes, with more attributes & methods for commonly-accessed metadata.
+- All parsed-ffprobe-output JSON-wrapper classes have introspection methods.
+- Added several derived exception classes for more-informative error reporting.
+- Documented the API (Sphinx/reST docstrings for modules, classes, methods).
+
+Significant API-breaking changes in this fork include:
+
+- **Changed the client-facing API of functions & classes**.
+- **No longer support Python 2 or Python3 < 3.3**.
+
+I renamed this forked repo to `ffprobe3-python3`, because:
+
+- The client-facing API of functions & classes has changed; and
+- The supported Python version has changed from Python2 to **Python3 >= 3.3**.
+
 ---
 
 Example usage
@@ -94,7 +127,7 @@ print(audio_stream.keys())
 
 **To see a comprehensive usage** of (almost all) the attributes, methods, and
 exceptions in the `ffprobe3` class & function API, also look at test module
-[`tests/test_ffprobe3.py`](https://github.com/jboy/ffprobe3-python3/blob/master/tests/test_ffprobe3.py) (link to GitHub).
+[`tests/test_ffprobe3.py`](https://github.com/jboy/ffprobe3-python3/blob/master/tests/test_ffprobe3.py) (link into GitHub repo).
 
 ---
 
@@ -145,45 +178,23 @@ on the `ffprobe-python` repo.
   Simplify the stream-parsing code by replacing the custom code with the `json`
   print-format that is already offered by the command-line `ffprobe` program.
 
-Significant changes in this fork include:
+What's the ancestry of this fork?
+---------------------------------
 
-- Fixed a few Python3 compatibility bugs in the pre-fork code.
-- Re-wrote the `ffprobe` call to request & parse the `json` print-format.
-- Re-wrote all client-facing parsed-ffprobe-output classes to wrap parsed JSON.
-- Re-wrote the subprocess code to use convenient new Python3 library features.
-- **No longer support Python 2 or Python3 < 3.3**.
-- **Changed the client-facing API of functions & classes**.
-- Support/allow remote media streams (as `ffprobe` program already does).
-- Local-file-exists checks are optional (use `verify_local_mediafile=False`).
-- Handle "Chapters" in media.
-- All parsed-ffprobe-output JSON-wrapper classes have introspection methods.
-- Added several derived exception classes for more-informative error reporting.
-- Documented the API (Sphinx/reST docstrings for modules, classes, methods).
-
-**I renamed this forked repo to `ffprobe3-python3`**, because:
-
-- The client-facing API of functions & classes has changed; and
-- The supported Python version has changed from Python2 to **Python3 >= 3.3**.
-
----
-
-Where did this fork come from?
-------------------------------
-
-This repo began as a bug-fixing fork (and has since become
-a **complete rewrite**) of: package `ffprobe-python`, which was created (2019) &
-maintained (2019--2021) by Mark Ma:
+This repo began as a bug-fixing fork (and is now a complete rewrite)
+of package `ffprobe-python`,
+which was created (2019) & maintained (2019--2021) by Mark Ma:
 
 - [https://pypi.org/project/ffprobe-python/](https://pypi.org/project/ffprobe-python/)
 - [https://github.com/gbstack/ffprobe-python](https://github.com/gbstack/ffprobe-python)
 
-In turn, `ffprobe-python` is a fork of: package `ffprobe3`,
+In turn, `ffprobe-python` is a fork of package `ffprobe3`,
 which was created (2016) & maintained (2016--2019) by Dheerendra Rathor:
 
 - [https://pypi.org/project/ffprobe3/](https://pypi.org/project/ffprobe3/)
 - [https://github.com/DheerendraRathor/ffprobe3](https://github.com/DheerendraRathor/ffprobe3)
 
-In turn, `ffprobe3` is a Python3 port of: the original Python package `ffprobe`,
+In turn, `ffprobe3` is a Python3 port of the original Python package `ffprobe`,
 which was created (2013) & maintained (2013--2016) by Simon Hargreaves:
 
 - [https://pypi.org/project/ffprobe/](https://pypi.org/project/ffprobe/)
