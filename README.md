@@ -22,18 +22,19 @@ Noteworthy improvements in this fork include:
 
 - Fixed a few Python3 compatibility bugs in the pre-fork code.
 - Re-wrote the `ffprobe` call to request & parse the `json` print-format.
-- Handle "Chapter" in `ffprobe` output.  ("Stream" was already handled.)
+- Handle "Chapter" in ffprobe output.  ("Stream" was already handled.)
 - Support/allow remote media streams (as `ffprobe` program already does).
 - Local-file-exists checks are optional (use `verify_local_mediafile=False`).
 - More classes, with more attributes & methods for commonly-accessed metadata.
-- Provide datasize & duration as both raw (precise) & human-readable values.
-- All `ffprobe`-output classes wrap & retain their JSON data for introspection.
-- All `ffprobe`-output classes can be reconstructed from their JSON `repr()`.
+- Provide datasize as bytes (`1185288357`) & human-readable (`"1.2 GB"`).
+- Provide duration as seconds (`5751.787`) & human-readable (`"01:35:51.79"`).
+- All ffprobe-output classes wrap & retain their JSON data for introspection.
+- All ffprobe-output classes can be reconstructed from their JSON `repr()`.
 - Added several derived exception classes for more-informative error reporting.
 - Re-wrote the subprocess code to use convenient new Python3 library features.
 - Documented the API (Sphinx/reST docstrings for modules, classes, methods).
 
-These are the currently-implemented classes to wrap `ffprobe` JSON output:
+These are the currently-implemented classes to wrap ffprobe JSON output:
 
 - `FFprobe(ParsedJson)`
 - `FFformat(ParsedJson)`
