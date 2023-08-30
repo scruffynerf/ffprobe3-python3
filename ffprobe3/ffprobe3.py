@@ -703,7 +703,7 @@ class ParsedJson(Mapping):
             # Hours, minutes, seconds
             duration_hours = duration_mins // 60
             duration_mins -= duration_hours * 60
-            return "%02d:%02d:%02.2f" % \
+            return "%02d:%02d:%05.2f" % \
                     (int(duration_hours), int(duration_mins), duration_secs)
         except Exception:
             return default
