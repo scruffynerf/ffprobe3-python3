@@ -140,15 +140,15 @@ Example usage::
 
     # Not sure which attributes & methods are available for each class?
     # Every class has 3 introspection methods:
-    # - method `.get_attr_names()`
-    # - method `.get_getter_names()`
+    # - method `.list_attr_names()`
+    # - method `.list_getter_names()`
     # - method `.keys()`
 
     # Which attributes does this class offer?  Get a list of names:
-    print(audio_stream.get_attr_names())
+    print(audio_stream.list_attr_names())
 
     # Which getter methods does this class offer?  Get a list of names:
-    print(audio_stream.get_getter_names())
+    print(audio_stream.list_getter_names())
 
     # Which keys are in the original dictionary of parsed JSON for this class?
     print(audio_stream.keys())
@@ -466,28 +466,28 @@ class ParsedJson(Mapping):
 
     For convenient introspection of class `ParsedJson` (or any derived class),
     a list of accessor methods for that class is returned by
-    :func:`get_getter_names`.  Example usage::
+    :func:`list_getter_names`.  Example usage::
 
         >>> import ffprobe3
         >>> p = ffprobe3.probe("movie.mp4")
         >>> v = p.video[0]
         >>> v
         FFvideoStream(parsed_json={ ... valid JSON ... })
-        >>> v.get_getter_names()
+        >>> v.list_getter_names()
         ['get', 'get_as_float', 'get_as_int', 'get_datasize_as_human',
         'get_duration_as_human', 'get_frame_shape']
 
     For convenience, each of the multiple classes that derive from this class
     will define data attributes and/or additional accessor methods appropriate
     to that type.  For convenient introspection, a list of data attributes is
-    returned by :func:`get_attr_names`.  Example usage::
+    returned by :func:`list_attr_names`.  Example usage::
 
         >>> import ffprobe3
         >>> p = ffprobe3.probe("movie.mp4")
         >>> v = p.video[0]
         >>> v
         FFvideoStream(parsed_json={ ... valid JSON ... })
-        >>> v.get_attr_names()
+        >>> v.list_attr_names()
         ['avg_frame_rate', 'bit_rate_bps', 'bit_rate_kbps', 'codec_long_name',
         'codec_name', 'codec_type', 'duration_secs', 'height', 'index',
         'parsed_json', 'width']
@@ -731,11 +731,11 @@ class ParsedJson(Mapping):
         except Exception:
             return default
 
-    def get_attr_names(self):
+    def list_attr_names(self):
         """Return the names of pre-defined attributes in this class.
 
         This method is useful for introspection of the derived class API.
-        Similar methods: :func:`get_getter_names`, :func:`keys`
+        Similar methods: :func:`list_getter_names`, :func:`keys`
 
         Example usage::
 
@@ -744,7 +744,7 @@ class ParsedJson(Mapping):
             >>> v = p.video[0]
             >>> v
             FFvideoStream(parsed_json={ ... valid JSON ... })
-            >>> v.get_attr_names()
+            >>> v.list_attr_names()
             ['avg_frame_rate', 'bit_rate_bps', 'bit_rate_kbps',
             'codec_long_name', 'codec_name', 'codec_type',
             'duration_secs', 'height', 'index', 'parsed_json',
@@ -760,7 +760,7 @@ class ParsedJson(Mapping):
             >>> a = p.audio[0]
             >>> a
             FFaudioStream(parsed_json={ ... valid JSON ... })
-            >>> a.get_attr_names()
+            >>> a.list_attr_names()
             ['bit_rate_bps', 'bit_rate_kbps', 'channel_layout',
             'codec_long_name', 'codec_name', 'codec_type',
             'duration_secs', 'index', 'num_channels', 'parsed_json',
@@ -770,13 +770,14 @@ class ParsedJson(Mapping):
                 if not (attr_name.startswith("_") or
                         attr_name.startswith("get") or
                         attr_name.startswith("is_") or
+                        attr_name.startswith("list_") or
                         attr_name in ("keys", "items", "values"))]
 
-    def get_getter_names(self):
+    def list_getter_names(self):
         """Return the names of dict-lookup getter-methods in this class.
 
         This method is useful for introspection of the derived class API.
-        Similar methods: :func:`get_attr_names`, :func:`keys`
+        Similar methods: :func:`list_attr_names`, :func:`keys`
 
         Example usage::
 
@@ -794,7 +795,7 @@ class ParsedJson(Mapping):
             'bits_per_raw_sample', 'height', 'time_base', 'index',
             'codec_long_name', 'codec_name', 'start_pts', 'coded_height',
             'is_avc', 'r_frame_rate', 'codec_time_base', 'nal_length_size'])
-            >>> v.get_getter_names()
+            >>> v.list_getter_names()
             ['get', 'get_as_float', 'get_as_int', 'get_datasize_as_human',
             'get_duration_as_human', 'get_frame_shape']
             >>> v.get("duration")
@@ -807,14 +808,13 @@ class ParsedJson(Mapping):
             (1904, 1072)
         """
         return [attr_name for attr_name in dir(self)
-                if (attr_name.startswith("get") and
-                    attr_name not in ("get_attr_names", "get_getter_names"))]
+                if attr_name.startswith("get")]
 
     def keys(self):
         """Return the keys in the top-level dictionary of parsed JSON.
 
         This method is useful for introspection of the parsed JSON.
-        Similar methods: :func:`get_attr_names`, :func:`get_getter_names`
+        Similar methods: :func:`list_attr_names`, :func:`list_getter_names`
 
         Example usage::
 

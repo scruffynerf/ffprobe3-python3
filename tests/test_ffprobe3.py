@@ -42,7 +42,7 @@ def test_SampleVideo_720x480_5mb():
     assert re.match("^FFprobe[(]split_cmdline=[[].+[]], parsed_json=[{].+[}][)]$", repr(p))
     assert str(p) == ('FFprobe(ffprobe "%s" => (mov,mp4,m4a,3gp,3g2,mj2): 00:00:31.00, 5.2 MB, 1353.182 kb/s, 2 streams, 0 chapters)' % test_filename)
 
-    assert p.get_attr_names() == [
+    assert p.list_attr_names() == [
             'attachment',
             'audio',
             'chapters',
@@ -122,7 +122,7 @@ def test_SampleVideo_720x480_5mb():
     assert f.get_as_int("nb_streams") == 2
     assert f.get_as_int('size') == 5243244
 
-    assert f.get_attr_names() == [
+    assert f.list_attr_names() == [
             'bit_rate_bps',
             'bit_rate_kbps',
             'duration_human',
@@ -208,7 +208,7 @@ def test_SampleVideo_720x480_5mb():
     assert v.get_as_int("height") == 480
     assert v.get_as_int("width") == 640
 
-    assert v.get_attr_names() == [
+    assert v.list_attr_names() == [
             'avg_frame_rate',
             'bit_rate_bps',
             'bit_rate_kbps',
@@ -288,7 +288,7 @@ def test_SampleVideo_720x480_5mb():
     assert a.get_as_int("channels") == 6
     assert a.get_as_int("sample_rate") == 48000
 
-    assert a.get_attr_names() == [
+    assert a.list_attr_names() == [
             'bit_rate_bps',
             'bit_rate_kbps',
             'channel_layout',

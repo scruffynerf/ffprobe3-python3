@@ -147,15 +147,15 @@ if audio_stream.sample_rate_Hz is not None:
 
 # Not sure which attributes & methods are available for each class?
 # Every class has 3 introspection methods:
-# - method `.get_attr_names()`
-# - method `.get_getter_names()`
+# - method `.list_attr_names()`
+# - method `.list_getter_names()`
 # - method `.keys()`
 
 # Which attributes does this class offer?  Get a list of names:
-print(audio_stream.get_attr_names())
+print(audio_stream.list_attr_names())
 
 # Which getter methods does this class offer?  Get a list of names:
-print(audio_stream.get_getter_names())
+print(audio_stream.list_getter_names())
 
 # Which keys are in the original dictionary of parsed JSON for this class?
 print(audio_stream.keys())
