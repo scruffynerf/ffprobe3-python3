@@ -93,8 +93,14 @@ if media_format.duration_secs is not None:
 if media_format.duration_human is not None:
     print("media duration = %s (HH:MM:SS.ss)" % media_format.duration_human)
 
+# Access a list of streams using `.streams`:
+print("media contains %d" streams" % len(ffprobe_output.streams))
+
+# Access a list of chapters using `.chapters`:
+print("media contains %d" chapters" % len(ffprobe_output.chapters))
+
 # Access specific stream types directly by named attribute of `FFprobe`:
-# In this new code version, each stream attribute of class `FFprobe`
+# In this new code version, each stream attribute of class `FFprobe` also
 # contains a list of instances of *only* a single specific derived class
 # of base class `FFstream`:
 # - `.attachment` -> `FFattachmentStream`
@@ -109,14 +115,14 @@ audio_stream = ffprobe_output.audio[0]  # assuming at least 1 audio stream
 video_width = video_stream.width
 video_height = video_stream.height
 if video_width is not None and video_height is not None:
-    print("Video frame shape = (%d, %d)" % (video_width, video_height))
+    print("video frame shape = (%d, %d)" % (video_width, video_height))
 
 # Class `FFvideoStream` also has a method `.get_frame_shape()`,
 # which returns the frame (width, height) in pixels as a pair of ints
 # (or `None` if *either* dimension's value is not found in the JSON):
 video_frame_shape = video_stream.get_frame_shape()
 if video_frame_shape is not None:
-    print("Video frame shape = (%d, %d)" % video_frame_shape)
+    print("video frame shape = (%d, %d)" % video_frame_shape)
 
 # This `get_frame_shape()` is a method with a name that begins with `get_`
 # (rather than simply an attribute called `frame_shape`, for example) to
@@ -132,12 +138,12 @@ if video_frame_shape is not None:
 # for each element:
 (video_width, video_height) = video_stream.get_frame_shape((None, None))
 if video_width is not None and video_height is not None:
-    print("Video frame shape = (%d, %d)" % (video_width, video_height))
+    print("video frame shape = (%d, %d)" % (video_width, video_height))
 
 # Derived class `FFaudioStream` has an attribute `.sample_rate_Hz`
 # (which defaults to `None` if no value was provided by `ffprobe`):
 if audio_stream.sample_rate_Hz is not None:
-    print("Audio sample rate = %d Hz" % audio_stream.sample_rate_Hz)
+    print("audio sample rate = %d Hz" % audio_stream.sample_rate_Hz)
 
 # Not sure which attributes & methods are available for each class?
 # Every class has 3 introspection methods:
