@@ -620,6 +620,7 @@ class ParsedJson(Mapping):
 
         If `key` is not found in parsed JSON, default to `default`.
         If `default` is not supplied, default to ``None``.
+
         This method will never raise a `KeyError`.
         """
         return self.parsed_json.get(key, default)
@@ -630,7 +631,9 @@ class ParsedJson(Mapping):
 
         If `key` is not found in parsed JSON, default to `default`.
         If conversion to ``float`` fails, default to `default`.
+        (Basically, if anything goes wrong, default to `default`.)
         If `default` is not supplied, default to ``None``.
+
         This method will never raise an exception.
 
         Returns:
@@ -647,7 +650,9 @@ class ParsedJson(Mapping):
 
         If `key` is not found in parsed JSON, default to `default`.
         If conversion to ``int`` fails, default to `default`.
+        (Basically, if anything goes wrong, default to `default`.)
         If `default` is not supplied, default to ``None``.
+
         This method will never raise an exception.
 
         Returns:
@@ -658,15 +663,15 @@ class ParsedJson(Mapping):
         except Exception:
             return default
 
-    def get_datasize_as_human(self, key, suffix='', default=None, *,
-            use_base_10=True):
+    def get_datasize_as_human(self, key, default=None, *,
+            suffix='', use_base_10=True):
         """Return a data-size for `key` in a "human-readable” base-10 format;
         else `default`.
 
         Args:
             key (str): parsed JSON dictionary key to look-up the data-size value
-            suffix (str, optional): units of data-size (e.g., ``"B"`` for Bytes)
             default (str, optional): fall-back value to return if this method fails
+            suffix (str, optional): units of data-size (e.g., ``"B"`` for Bytes)
             use_base_10 (bool, optional): use base-10 units rather than base-2 units
 
         Returns:
@@ -674,8 +679,13 @@ class ParsedJson(Mapping):
 
         If `key` is not found in parsed JSON, default to `default`.
         If conversion of data-size to ``float`` fails, default to `default`.
+        (Basically, if anything goes wrong, default to `default`.)
         If `default` is not supplied, default to ``None``.
+
         This method will never raise an exception.
+
+        Note that if `default` is returned, no `suffix` will be appended
+        within the result.  (How do you append a string suffix to ``None``?)
         """
         if use_base_10:
             # This is the default, because it's what `ls -lh` does.
@@ -714,7 +724,9 @@ class ParsedJson(Mapping):
 
         If ``"duration"`` key is not found in parsed JSON, default to `default`.
         If conversion of duration to ``float`` fails, default to `default`.
+        (Basically, if anything goes wrong, default to `default`.)
         If `default` is not supplied, default to ``None``.
+
         This method will never raise an exception.
         """
         try:
@@ -999,7 +1011,7 @@ class FFformat(ParsedJson):
         except (TypeError, ValueError):
             self.bit_rate_kbps = None
         self.size_B =               self.get_as_int('size')
-        self.size_human =           self.get_datasize_as_human('size', 'B')
+        self.size_human =           self.get_datasize_as_human('size', suffix='B')
 
     def __str__(self):
         """Return a string containing a human-readable summary of the object."""
