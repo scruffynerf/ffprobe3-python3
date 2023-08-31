@@ -96,10 +96,10 @@ if media_format.duration_human is not None:
     print("media duration = %s (HH:MM:SS.ss)" % media_format.duration_human)
 
 # Access a list of streams using `.streams`:
-print("media contains %d" streams" % len(ffprobe_output.streams))
+print("media contains %d streams" % len(ffprobe_output.streams))
 
 # Access a list of chapters using `.chapters`:
-print("media contains %d" chapters" % len(ffprobe_output.chapters))
+print("media contains %d chapters" % len(ffprobe_output.chapters))
 
 # Access specific stream types directly by named attribute of `FFprobe`:
 # In this new code version, each stream attribute of class `FFprobe` also
