@@ -220,6 +220,7 @@ def test_SampleVideo_720x480_5mb():
             'index',
             'num_frames',
             'parsed_json',
+            'r_frame_rate',
             'width',
     ]
 
@@ -233,10 +234,17 @@ def test_SampleVideo_720x480_5mb():
     assert v.height == 480
     assert v.index == 0
     assert v.num_frames == 774
+    assert v.r_frame_rate == '25/1'
     assert v.width == 640
 
+    assert v.get_avg_frame_rate() == 25.0
     assert v.get_duration_as_human() == '00:00:30.96'
+    assert v.get_frame_rate_as_float('avg_frame_rate') == 25.0
+    assert v.get_frame_rate_as_float('r_frame_rate') == 25.0
+    assert v.get_frame_rate_as_ratio('avg_frame_rate') == (25, 1)
+    assert v.get_frame_rate_as_ratio('r_frame_rate') == (25, 1)
     assert v.get_frame_shape() == (640, 480)
+    assert v.get_r_frame_rate() == 25.0
     assert not v.is_attachment()
     assert not v.is_audio()
     assert not v.is_subtitle()

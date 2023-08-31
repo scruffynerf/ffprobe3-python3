@@ -26,8 +26,10 @@ Noteworthy improvements in this fork include:
 - Support/allow remote media streams (as `ffprobe` program already does).
 - Local-file-exists checks are optional (use `verify_local_mediafile=False`).
 - More classes, with more attributes & methods for commonly-accessed metadata.
-- Provide datasize as bytes (`1185288357`) & human-readable (`"1.2 GB"`).
-- Provide duration as seconds (`5751.787`) & human-readable (`"01:35:51.79"`).
+- Get datasize as bytes (`1185288357`) or human-readable (`"1.2 GB"`).
+- Get duration as seconds (`5751.787`) or human-readable (`"01:35:51.79"`).
+- Get "avg frame-rate" as FPS (`29.97`) or ratio 2-tuple (`(2516481, 83966)`).
+- Get "r frame-rate" as FPS (`29.97`) or ratio 2-tuple (`(2997, 100)`).
 - All ffprobe-output classes wrap & retain their JSON data for introspection.
 - All ffprobe-output classes can be reconstructed from their JSON `repr()`.
 - Added several derived exception classes for more-informative error reporting.

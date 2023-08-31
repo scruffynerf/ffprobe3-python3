@@ -24,8 +24,10 @@ Noteworthy improvements in this fork include:
 - Support/allow remote media streams (as ``ffprobe`` program already does).
 - Local-file-exists checks are optional (use ``verify_local_mediafile=False``).
 - More classes, with more attributes & methods for commonly-accessed metadata.
-- Provide datasize as bytes (``1185288357``) & human-readable (``"1.2 GB"``).
-- Provide duration as seconds (``5751.787``) & human-readable (``"01:35:51.79"``).
+- Get datasize as bytes (``1185288357``) or human-readable (``"1.2 GB"``).
+- Get duration as seconds (``5751.787``) or human-readable (``"01:35:51.79"``).
+- Get "avg frame-rate" as FPS (``29.97``) or ratio 2-tuple (``(2516481, 83966)``).
+- Get "r frame-rate" as FPS (``29.97``) or ratio 2-tuple (``(2997, 100)``).
 - All ffprobe-output classes wrap & retain their JSON data for introspection.
 - All ffprobe-output classes can be reconstructed from their JSON ``repr()``.
 - Added several derived exception classes for more-informative error reporting.
@@ -172,7 +174,7 @@ from .exceptions import *
 _SPLIT_COMMAND_LINE = [
         'ffprobe',
         '-v',
-        # Use log-level (flag == '-v') of 'error' rather than 'quiet'
+        # Use a log-level ('-v') of 'error' rather than 'quiet',
         # so that `ffprobe` at least reports a single-line error message
         # in the case of failure.
         'error', #'quiet',
@@ -490,7 +492,7 @@ class ParsedJson(Mapping):
         >>> v.list_attr_names()
         ['avg_frame_rate', 'bit_rate_bps', 'bit_rate_kbps', 'codec_long_name',
         'codec_name', 'codec_type', 'duration_secs', 'height', 'index',
-        'parsed_json', 'width']
+        'parsed_json', 'r_frame_rate', 'width']
 
     In general, client code should not need to construct this class manually.
     Derived classes of this class are constructed by function :func:`probe`.
@@ -629,15 +631,15 @@ class ParsedJson(Mapping):
         """Return the value for `key` as a ``float``, if `key` is in parsed JSON
         and can be converted to a ``float``; else `default`.
 
+        Returns:
+            ``float`` or `default`
+
         If `key` is not found in parsed JSON, default to `default`.
         If conversion to ``float`` fails, default to `default`.
         (Basically, if anything goes wrong, default to `default`.)
         If `default` is not supplied, default to ``None``.
 
         This method will never raise an exception.
-
-        Returns:
-            ``float`` or `default`
         """
         try:
             return float(self.parsed_json[key])
@@ -648,15 +650,15 @@ class ParsedJson(Mapping):
         """Return the value for `key` as an ``int``, if `key` is in parsed JSON
         and can be converted to an ``int``; else `default`.
 
+        Returns:
+            ``int`` or `default`
+
         If `key` is not found in parsed JSON, default to `default`.
         If conversion to ``int`` fails, default to `default`.
         (Basically, if anything goes wrong, default to `default`.)
         If `default` is not supplied, default to ``None``.
 
         This method will never raise an exception.
-
-        Returns:
-            ``int`` or `default`
         """
         try:
             return int(self.parsed_json[key])
@@ -675,7 +677,7 @@ class ParsedJson(Mapping):
             use_base_10 (bool, optional): use base-10 units rather than base-2 units
 
         Returns:
-            ``str`` (e.g., ``"567.8 MB"`` or ``"1.3 GiB"``)
+            ``str`` (e.g., ``"567.8 MB"`` or ``"1.3 GiB"``) or `default`
 
         If `key` is not found in parsed JSON, default to `default`.
         If conversion of data-size to ``float`` fails, default to `default`.
@@ -720,7 +722,7 @@ class ParsedJson(Mapping):
         """Return the duration as a string ``"HH:MM:SS.ss"``; else `default`.
 
         Returns:
-            ``str`` (e.g., ``"01:04:14.80"``)
+            ``str`` (e.g., ``"01:04:14.80"``) or `default`
 
         If ``"duration"`` key is not found in parsed JSON, default to `default`.
         If conversion of duration to ``float`` fails, default to `default`.
@@ -760,7 +762,7 @@ class ParsedJson(Mapping):
             ['avg_frame_rate', 'bit_rate_bps', 'bit_rate_kbps',
             'codec_long_name', 'codec_name', 'codec_type',
             'duration_secs', 'height', 'index', 'parsed_json',
-            'width']
+            'r_frame_rate', 'width']
             >>> v.bit_rate_bps
             2149704
             >>> v.bit_rate_kbps
@@ -1263,7 +1265,8 @@ class FFvideoStream(FFstream):
 
     :ivar width: (``int`` or ``None``) frame width in pixels
     :ivar height: (``int`` or ``None``) frame height in pixels
-    :ivar avg_frame_rate: (``str`` or ``None``) average frame rate
+    :ivar avg_frame_rate: (``str`` or ``None``) "average frame rate"
+    :ivar r_frame_rate: (``str`` or ``None``) "r frame rate"
     :ivar num_frames: (``int`` or ``None``) number of frames
     :ivar bit_rate_bps: (``int`` or ``None``) video bit-rate in bits-per-second
     :ivar bit_rate_kbps: (``float`` or ``None``) video bit-rate in kilobits-per-second
@@ -1284,6 +1287,7 @@ class FFvideoStream(FFstream):
         self.width =            self.get_as_int('width')
         self.height =           self.get_as_int('height')
         self.avg_frame_rate =   self.get('avg_frame_rate')
+        self.r_frame_rate =     self.get('r_frame_rate')
         self.num_frames =       self.get_as_int('nb_frames')
         self.bit_rate_bps =     self.get_as_int('bit_rate')
         try:
@@ -1298,6 +1302,158 @@ class FFvideoStream(FFstream):
                         self.codec_type, self.codec_name,
                         self.width, self.height,
                         self.avg_frame_rate, self.bit_rate_kbps)
+
+    def get_frame_rate_as_ratio(self, key, default=None):
+        """Return a frame-rate for `key` as 2-tuple `(numerator, denominator)`;
+        else `default`.
+
+        Args:
+            key (str): parsed JSON dictionary key to look-up the frame-rate value
+            default (str, optional): fall-back value to return if this method fails
+
+        Returns:
+            ``tuple`` of 2 elements (e.g., ``(2997, 100)``) or `default`
+
+        We expect that the frame-rate returned by ``ffprobe`` will be a string
+        with format ``n/d``, where:
+
+        - `n` looks like ``int`` ("number of frames" or "numerator in ratio").
+        - `d` looks like ``int`` ("duration (secs)" or "denominator in ratio").
+
+        This method will return a 2-tuple ``(int(n), int(d))``.
+
+        Note: This method does NOT verify that `n` & `d` are positive integers.
+        They might be zero or even negative!
+
+        More generally, this method does NOT attempt to validate the ratio,
+        nor to reduce ratios by their Greatest Common Divisor.  This method
+        simply reports the integers that were returned by ``ffprobe``.
+
+        If you want/need more validation of the ratio, you might consider
+        the similar method :func:`get_frame_rate_as_float`.
+
+        If `key` is not found in parsed JSON, default to `default`.
+        If the frame-rate doesn't look like ``"int/int"``, default to `default`.
+        If conversion of numerator or denominator to ``int`` fails, default to
+        `default`.
+
+        (Basically, if anything goes wrong, default to `default`.)
+        If `default` is not supplied, default to ``None``.
+
+        This method will never raise an exception.
+        """
+        try:
+            # Possible exception: `key` is not found.
+            frame_rate = self.parsed_json[key]
+            # Possible exception: `frame_rate` doesn't match regex,
+            # so `None` is returned, which has no method `.groups()`.
+            (n, d) = re.match("^(-?[0-9]+)/(-?[0-9]+)$", frame_rate).groups()
+            # Possible exception: `int(n)` fails or `int(d)` fails.
+            return (int(n), int(d))
+        except Exception:
+            return default
+
+    def get_frame_rate_as_float(self, key, default=None):
+        """Return a frame-rate for `key` as a ``float``; else `default`.
+
+        Args:
+            key (str): parsed JSON dictionary key to look-up the frame-rate value
+            default (str, optional): fall-back value to return if this method fails
+
+        Returns:
+            ``float`` (frames per second) or `default`
+
+        We expect that the frame-rate returned by ``ffprobe`` will be a string
+        with format ``n/d``, where:
+
+        - `n` looks like ``int`` ("number of frames" or "numerator in ratio").
+        - `d` looks like ``int`` ("duration (secs)" or "denominator in ratio").
+
+        This method will return a ``float`` equal to ``(float(n) / float(d))``.
+
+        If `key` is not found in parsed JSON, default to `default`.
+        If the frame-rate doesn't look like ``"int/int"``, default to `default`.
+        If conversion of numerator or denominator to ``int`` fails, default to
+        `default`.
+        If a numerator or denominator is negative or zero, default to `default`.
+
+        (Basically, if anything goes wrong, default to `default`.)
+        If `default` is not supplied, default to ``None``.
+
+        This method will never raise an exception.
+        """
+        try:
+            # Possible exception: `self.get_frame_rate_as_ratio(key)` fails,
+            # so its "default" `default` of `None` is returned,
+            # which cannot be 2-tuple deconstructed into `(n, d)`.
+            (n, d) = self.get_frame_rate_as_ratio(key)
+            if n <= 0 or d <= 0:
+                # Either `n` or `d` (or both!) is negative or zero.
+                return default
+            # Possible exception: `float(n)` fails or `float(d)` fails.
+            return (float(n) / float(d))
+        except Exception:
+            return default
+
+    def get_avg_frame_rate(self, default=None):
+        """Return ``avg_frame_rate`` as a ``float``; else `default`.
+
+        This is the "average frame rate" over the whole video stream.
+
+        Returns:
+            ``float`` (frames per second) or `default`
+
+        We expect that the frame-rate returned by ``ffprobe`` will be a string
+        with format ``n/d``, where:
+
+        - `n` looks like ``int`` ("total number of frames").
+        - `d` looks like ``int`` ("total duration (secs)").
+
+        This method will return a ``float`` equal to ``(float(n) / float(d))``.
+
+        If the frame-rate doesn't look like ``"int/int"``, default to `default`.
+        If conversion of numerator or denominator to ``int`` fails, default to
+        `default`.
+        If a numerator or denominator is negative or zero, default to `default`.
+
+        (Basically, if anything goes wrong, default to `default`.)
+        If `default` is not supplied, default to ``None``.
+
+        This method will never raise an exception.
+        """
+        return self.get_frame_rate_as_float("avg_frame_rate", default=default)
+
+    def get_r_frame_rate(self, default=None):
+        """Return ``r_frame_rate`` as a ``float``; else `default`.
+
+        This is the mysteriously-named "r frame rate":
+
+            "The lowest framerate with which all timestamps can be represented
+            accurately (it is the least common multiple of all framerates in
+            the stream)."
+
+        Returns:
+            ``float`` (frames per second) or `default`
+
+        We expect that the frame-rate returned by ``ffprobe`` will be a string
+        with format ``n/d``, where:
+
+        - `n` looks like ``int`` ("number of frames" or "numerator in ratio").
+        - `d` looks like ``int`` ("duration (secs)" or "denominator in ratio").
+
+        This method will return a ``float`` equal to ``(float(n) / float(d))``.
+
+        If the frame-rate doesn't look like ``"int/int"``, default to `default`.
+        If conversion of numerator or denominator to ``int`` fails, default to
+        `default`.
+        If a numerator or denominator is negative or zero, default to `default`.
+
+        (Basically, if anything goes wrong, default to `default`.)
+        If `default` is not supplied, default to ``None``.
+
+        This method will never raise an exception.
+        """
+        return self.get_frame_rate_as_float("r_frame_rate", default=default)
 
     def get_frame_shape(self, default=None):
         """Return frame (width, height) as a pair ``(int, int)``; else `default`.
