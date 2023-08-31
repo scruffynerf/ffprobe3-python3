@@ -99,16 +99,33 @@ Example usage::
 
     # Derived class `FFvideoStream` has attributes `width` & `height` for
     # the frame dimensions in pixels (or `None` if not found in the JSON):
-    (video_width, video_height) = (video_stream.width, video_stream.height)
+    video_width = video_stream.width
+    video_height = video_stream.height
     if video_width is not None and video_height is not None:
         print("Video frame shape = (%d, %d)" % (video_width, video_height))
 
     # Class `FFvideoStream` also has a method `.get_frame_shape()`,
     # which returns the frame (width, height) in pixels as a pair of ints
-    # (or `None` if *either* is not found in the JSON):
+    # (or `None` if *either* dimension's value is not found in the JSON):
     video_frame_shape = video_stream.get_frame_shape()
     if video_frame_shape is not None:
         print("Video frame shape = (%d, %d)" % video_frame_shape)
+
+    # This `get_frame_shape()` is a method with a name that begins with `get_`
+    # (rather than simply an attribute called `frame_shape`, for example) to
+    # indicate that:
+    #     (a) It has a "default" `default` of `None`
+    #         (like Python's `dict.get(key, default=None)`).
+    # and:
+    #     (b) You may override this "default" `default` as a keyword argument
+    #         (for example, if you would rather return a pair `(None, None)`
+    #         than a single `None` value, for 2-tuple deconstruction).
+    #
+    # So you could instead use a 2-tuple deconstruction with a default `None`
+    # for each element:
+    (video_width, video_height) = video_stream.get_frame_shape((None, None))
+    if video_width is not None and video_height is not None:
+        print("Video frame shape = (%d, %d)" % (video_width, video_height))
 
     # Derived class `FFaudioStream` has an attribute `.sample_rate_Hz`
     # (which defaults to `None` if no value was provided by `ffprobe`):
@@ -1265,10 +1282,20 @@ class FFvideoStream(FFstream):
                         self.avg_frame_rate, self.bit_rate_kbps)
 
     def get_frame_shape(self, default=None):
-        """Return the frame (width, height) as a pair ``(int, int)``; else `default`.
+        """Return frame (width, height) as a pair ``(int, int)``; else `default`.
 
         If `default` is not supplied, it defaults to ``None``, so this method
         will never raise a `KeyError`.
+
+        API design note: This is a method with a name that begins with ``get_``
+        (rather than simply an attribute called ``frame_shape``, for example)
+        to indicate that:
+            (a) It has a "default" `default` of ``None``
+                (like Python's ``dict.get(key, default=None)``).
+        and:
+            (b) You may override this "default" `default` as a keyword argument
+                (for example, if you would rather return a pair ``(None, None)``
+                than a single ``None`` value, for 2-tuple deconstruction).
         """
         try:
             return (int(self.width), int(self.height))
