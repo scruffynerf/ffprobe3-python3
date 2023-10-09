@@ -16,16 +16,16 @@ with open('README.md', 'r') as fh:
     long_description = fh.read()
 
 setup(
-    name='ffprobe3-python3',
+    name='ffprobe3py3',
     version='2.0.0',
     description="""A Python3 wrapper-library around the 'ffprobe' command-line program to extract metadata from media files or streams.""",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    author='Simon Hargreaves, Dheerendra Rathor, Mark Ma, James Boyden',
-    author_email='pypi@jboy.me',
-    maintainer='James Boyden',
-    maintainer_email='pypi@jboy.me',
-    url='https://github.com/jboy/ffprobe3-python3',
+    author='Simon Hargreaves, Dheerendra Rathor, Mark Ma, James Boyden, ScruffyNerf',
+    author_email='scruffynerf23+github@gmail.com',
+    maintainer='Scruffynerf',
+    maintainer_email='scruffynerf23+github@gmail.com',
+    url='https://github.com/scruffynerf/ffprobe3py3',
     # Specify that the source code is in a subdirectory `ffprobe3`
     # under the project root directory.
     packages=['ffprobe3'],
@@ -63,6 +63,6 @@ setup(
     # List additional URLs that are relevant to the project.
     # The dict keys are what's used to render the link text on PyPI.
     project_urls={
-        'Source': 'https://github.com/jboy/ffprobe3-python3',
+        'Source': 'https://github.com/scruffynerf/ffprobe3py3',
     }
 )
